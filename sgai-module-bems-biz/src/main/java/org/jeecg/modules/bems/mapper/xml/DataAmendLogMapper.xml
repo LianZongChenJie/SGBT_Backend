@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.bems.mapper.DataAmendLogMapper">
+
+    <!-- 使用 EXISTS 子查询的分页查询 -->
+    <select id="selectPageWithPermission" resultType="org.jeecg.modules.bems.entity.DataAmendLog">
+        SELECT dal.*
+        FROM data_amend_log dal
+        WHERE EXISTS (
+            SELECT 1
+            FROM device d
+            WHERE d.id = dal.device_id
+            <!-- 数据权限过滤：专业权限 -->
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                AND d.category_id IN
+                <foreach collection="categoryIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <!-- 数据权限过滤：空间权限 -->
+            <if test="spaceIds != null and spaceIds.size() > 0">
+                AND d.space_id IN
+                <foreach collection="spaceIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <!-- 设备名称过滤 -->
+            <if test="deviceName != null and deviceName != ''">
+                AND d.device_name LIKE CONCAT('%', #{deviceName}, '%')
+            </if>
+            <!-- 设备编码过滤 -->
+            <if test="deviceCode != null and deviceCode != ''">
+                AND d.device_code = #{deviceCode}
+            </if>
+            <!-- 用户传入的空间过滤 -->
+            <if test="spaceIdList != null and spaceIdList.size() > 0">
+                AND d.space_id IN
+                <foreach collection="spaceIdList" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        )
+        <!-- 设备ID过滤 -->
+        <if test="deviceId != null">
+            AND dal.device_id = #{deviceId}
+        </if>
+        <!-- 修正类型过滤 -->
+        <if test="amendType != null and amendType != ''">
+            <if test="amendType == '系统修正'">
+                AND dal.update_by = '系统修正'
+            </if>
+            <if test="amendType == '人工修正'">
+                AND dal.update_by != '系统修正'
+            </if>
+        </if>
+        ORDER BY dal.update_time DESC
+    </select>
+
+</mapper>
