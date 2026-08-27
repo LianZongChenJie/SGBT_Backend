@@ -1,2 +1,5 @@
 # superpowers skill scratch（任务 brief/report/ledger，不入库）
 .superpowers/
+/sgai-module-bems-api/target
+/sgai-module-bems-biz/target
+/sgai-module-bems-start/target
