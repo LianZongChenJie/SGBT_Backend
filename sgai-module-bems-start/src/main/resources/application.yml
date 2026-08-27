@@ -6,7 +6,7 @@ spring:
   config:
     import:
       - optional:nacos:jeecg.yaml
-      - optional:nacos:jeecg-dev.yaml
+      - optional:nacos:bems-dev-local.yaml
   cloud:
     nacos:
       config:
