@@ -1,5 +1,5 @@
 server:
-  port: 7010
+  port: 7020
 spring:
   application:
     name: sgai-bems-baotou
