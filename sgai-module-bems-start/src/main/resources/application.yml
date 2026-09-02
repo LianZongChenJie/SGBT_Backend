@@ -33,3 +33,11 @@ bems:
       receive-path: /master/integration/receive
     push:
       timeout-seconds: 5
+    gas:
+      url: http://192.168.3.63:8080/RealData
+      tagids:
+    hydrogen:
+      url: http://192.168.3.63:8080/RealData
+      tagids:
+    point:
+      url: http://192.168.3.63:8080/Point

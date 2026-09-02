@@ -14,6 +14,9 @@ public class IntegrationProperties {
     private Master master = new Master();
     private Push push = new Push();
 
+    private GasOrHydrogen gas = new GasOrHydrogen();
+    private GasOrHydrogen hydrogen = new GasOrHydrogen();
+    private GasOrHydrogen point = new GasOrHydrogen();
     @Data
     public static class Token {
         private String meter;
@@ -28,5 +31,11 @@ public class IntegrationProperties {
     @Data
     public static class Push {
         private int timeoutSeconds = 5;
+    }
+
+    @Data
+    public static class GasOrHydrogen {
+        private String url;
+        private String tagids;
     }
 }
