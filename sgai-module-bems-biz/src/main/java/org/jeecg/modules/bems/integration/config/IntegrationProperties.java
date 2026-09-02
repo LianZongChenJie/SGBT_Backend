@@ -17,6 +17,20 @@ public class IntegrationProperties {
     private GasOrHydrogen gas = new GasOrHydrogen();
     private GasOrHydrogen hydrogen = new GasOrHydrogen();
     private GasOrHydrogen point = new GasOrHydrogen();
+    private GasOrHydrogen eldb = new GasOrHydrogen();
+    private GasOrHydrogen ysclq = new GasOrHydrogen();
+    private GasOrHydrogen gl1 = new GasOrHydrogen();
+    private GasOrHydrogen gl2 = new GasOrHydrogen();
+    private GasOrHydrogen gl3 = new GasOrHydrogen();
+    private GasOrHydrogen glfj = new GasOrHydrogen();
+    private GasOrHydrogen bfxtscl = new GasOrHydrogen();
+    private GasOrHydrogen ld = new GasOrHydrogen();
+    private GasOrHydrogen cqhq = new GasOrHydrogen();
+    private GasOrHydrogen cqqqjyq = new GasOrHydrogen();
+    private GasOrHydrogen gf = new GasOrHydrogen();
+    private GasOrHydrogen grxtzj = new GasOrHydrogen();
+    private GasOrHydrogen bems = new GasOrHydrogen();
+    private GasOrHydrogen nyz = new GasOrHydrogen();
     @Data
     public static class Token {
         private String meter;

@@ -35,9 +35,52 @@ bems:
       timeout-seconds: 5
     gas:
       url: http://192.168.3.63:8080/RealData
-      tagids:
+      tagids: 77-84,5260-5267,86-121
     hydrogen:
       url: http://192.168.3.63:8080/RealData
-      tagids:
+      tagids: 176-205
     point:
       url: http://192.168.3.63:8080/Point
+      tagids:
+    eldb:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 123-174
+    ysclq:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 207-239
+    gl1:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 241-353
+    gl2:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 355-467
+    gl3:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 469-567
+    glfj:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 569-638
+    bfxtscl:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 821-1249
+    ld:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 640-819
+    cqhq:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 1251-1259
+    cqqqjyq:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 1261-1267
+    gf:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 1302-5114
+    grxtzj:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 1269-1300
+    bems:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 5228-5259
+    nyz:
+      url: http://192.168.3.63:8080/RealData
+      tagids: 5116-5259

@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * 燃气和氢气
+ * 燃气和氢气,以及其它
  */
 @Api(tags = "燃气和氢气数据")
 @RestController
@@ -49,6 +49,132 @@ public class GasAndHydrogenController {
     public Result<Object> queryHydrogenData(){
         try {
             return post(props.getHydrogen());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取二楼电表数据", notes = "获取二楼电表数据")
+    @GetMapping("/queryEldbData")
+    public Result<Object> queryEldbData(){
+        try {
+            return post(props.getEldb());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取雨水处理器数据", notes = "获取雨水处理器数据")
+    @GetMapping("/queryYsclqData")
+    public Result<Object> queryYsclqData(){
+        try {
+            return post(props.getYsclq());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取1#锅炉数据", notes = "获取1#锅炉数据")
+    @GetMapping("/queryGl1Data")
+    public Result<Object> queryGl1Data(){
+        try {
+            return post(props.getGl1());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取2#锅炉数据", notes = "获取2#锅炉数据")
+    @GetMapping("/queryGl2Data")
+    public Result<Object> queryGl2Data(){
+        try {
+            return post(props.getGl2());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取3#锅炉数据", notes = "获取3#锅炉数据")
+    @GetMapping("/queryGl3Data")
+    public Result<Object> queryGl3Data(){
+        try {
+            return post(props.getGl3());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取锅炉辅机数据", notes = "获取锅炉辅机数据")
+    @GetMapping("/queryGlfjData")
+    public Result<Object> queryGlfjData(){
+        try {
+            return post(props.getGlfj());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取北方稀土水处理数据", notes = "获取北方稀土水处理数据")
+    @GetMapping("/queryBfxtsclData")
+    public Result<Object> queryBfxtsclData(){
+        try {
+            return post(props.getBfxtscl());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取零氮数据", notes = "获取零氮数据")
+    @GetMapping("/queryLdData")
+    public Result<Object> queryLdData(){
+        try {
+            return post(props.getLd());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取掺氢-混气数据", notes = "获取掺氢-混气数据")
+    @GetMapping("/queryCqhqData")
+    public Result<Object> queryCqhqData(){
+        try {
+            return post(props.getCqhq());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取掺氢氢气减压撬数据", notes = "获取掺氢氢气减压撬数据")
+    @GetMapping("/queryCqqqjyqData")
+    public Result<Object> queryCqqqjyqData(){
+        try {
+            return post(props.getCqqqjyq());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取光伏数据", notes = "获取光伏数据")
+    @GetMapping("/queryGfData")
+    public Result<Object> queryGfData(){
+        try {
+            return post(props.getGf());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取光热系统主机数据", notes = "获取光热系统主机数据")
+    @GetMapping("/queryGrxtzjData")
+    public Result<Object> queryGrxtzjData(){
+        try {
+            return post(props.getGrxtzj());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取bems数据", notes = "获取bems数据")
+    @GetMapping("/queryBemsData")
+    public Result<Object> queryBemsData(){
+        try {
+            return post(props.getBems());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @ApiOperation(value = "获取能源站数据", notes = "获取能源站数据")
+    @GetMapping("/queryNyzData")
+    public Result<Object> queryNyzData(){
+        try {
+            return post(props.getNyz());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -86,7 +212,9 @@ public class GasAndHydrogenController {
         out.close();
         con.disconnect();
         JSONObject json = JSONObject.parseObject(response.toString());
-
+        if(json.getJSONObject("data")==null){
+            return Result.error("没有数据");
+        }
         //加入接口Point获取desc
         StringBuilder tagidsBuilder = new StringBuilder();
         for(JSONObject jsonObject : json.getJSONObject("data")
@@ -146,6 +274,19 @@ public class GasAndHydrogenController {
             con.disconnect();
         }catch (Exception e){
             throw new RuntimeException(e);
+        }finally {
+            if(br!=null) {
+                br.close();
+                br = null;
+            }
+            if(out!=null) {
+                out.close();
+                out = null;
+            }
+            if(con!=null){
+                con.disconnect();
+                con = null;
+            }
         }
         return Result.OK(json.get("data"));
     }
