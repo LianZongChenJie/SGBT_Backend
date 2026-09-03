@@ -6,6 +6,12 @@ import io.swagger.annotations.ApiOperation;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.bems.integration.config.IntegrationProperties;
 import org.jeecg.modules.bems.patterned.entity.QualityStamp;
@@ -181,20 +187,17 @@ public class GasAndHydrogenController {
     }
 
     public Result<Object> post(IntegrationProperties.GasOrHydrogen gasOrHydrogen) throws Exception{
+        String tagids = StringUtils.isBlank(gasOrHydrogen.getTagids())
+                ?"*":gasOrHydrogen.getTagids().trim();
+        String requestBody = "{\"tagids\":\"" + tagids+"\"}";
+        URL obj = null;
         String url = gasOrHydrogen.getUrl();
-
-        URL obj = new URL(url);
+        obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
         con.setRequestMethod("POST");
 
         con.setRequestProperty("Content-Type", "application/json");
-        con.setRequestProperty("Accept", "application/json");
-
-        String tagids = StringUtils.isBlank(gasOrHydrogen.getTagids())
-                ?"*":gasOrHydrogen.getTagids();
-        String requestBody = "{\"tagids\":\"" + tagids+"\"," +
-                    "\"charset\": \"utf-8\", \"archived\":0}";
         con.setDoInput(true);
         con.setDoOutput(true);
 
@@ -202,16 +205,16 @@ public class GasAndHydrogenController {
         out.write(requestBody);
         out.newLine();
         out.flush();
+
         BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
         StringBuilder response = new StringBuilder();
         String responseLine = null;
         while ((responseLine = br.readLine()) != null) {
             response.append(responseLine.trim());
         }
-        br.close();
-        out.close();
-        con.disconnect();
+        log.error("-------------POST BODY response"+response.toString());
         JSONObject json = JSONObject.parseObject(response.toString());
+        log.error("-------------POST BODY json"+json.toString());
         if(json.getJSONObject("data")==null){
             return Result.error("没有数据");
         }
@@ -223,6 +226,18 @@ public class GasAndHydrogenController {
             tagidsBuilder.append(",");
         }
         String requestPointBody = tagidsBuilder.substring(0, tagidsBuilder.lastIndexOf(","));
+        if(br!=null) {
+            br.close();
+            br = null;
+        }
+        if(out!=null) {
+            out.close();
+            out = null;
+        }
+        if(con!=null){
+            con.disconnect();
+            con = null;
+        }
         try{
             url = props.getPoint().getUrl();
             obj = new URL(url);
@@ -231,7 +246,6 @@ public class GasAndHydrogenController {
             con.setRequestMethod("POST");
 
             con.setRequestProperty("Content-Type", "application/json");
-            con.setRequestProperty("Accept", "application/json");
 
             requestPointBody = "{\"tagids\":\"" + requestPointBody+"\"," +
                     "\"charset\": \"utf-8\", \"archived\":0," +
@@ -249,6 +263,7 @@ public class GasAndHydrogenController {
                 response.append(responseLine.trim());
             }
             JSONObject descResponse = JSONObject.parseObject(response.toString());
+            log.error("--------descResponse "+descResponse);
             //读取 质量戳 从数据库表加载
             List<QualityStamp> list = qualityStampService.getList();
             for(JSONObject object : json.getJSONObject("data")
@@ -260,6 +275,9 @@ public class GasAndHydrogenController {
                         break;
                     }
                 }
+                if(descResponse.getJSONObject("data")==null){
+                    continue;
+                }
                 //获取描述字符串
                 for(JSONObject descObject : descResponse.getJSONObject("data")
                         .getJSONArray("values").toArray(new JSONObject[0])){
@@ -269,9 +287,6 @@ public class GasAndHydrogenController {
                     }
                 }
             }
-            br.close();
-            out.close();
-            con.disconnect();
         }catch (Exception e){
             throw new RuntimeException(e);
         }finally {
