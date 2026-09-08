@@ -8,9 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.bems.mdm.entity.MonitorPoint;
 import org.jeecg.modules.bems.mdm.entity.MonitorPointHistory;
+import org.jeecg.modules.bems.mdm.service.IMonitorPointCollectService;
 import org.jeecg.modules.bems.mdm.service.IMonitorPointHistoryService;
 import org.jeecg.modules.bems.mdm.service.IMonitorPointService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,6 +34,26 @@ public class MonitorPointController {
 
     private final IMonitorPointService monitorPointService;
     private final IMonitorPointHistoryService monitorPointHistoryService;
+    private final IMonitorPointCollectService monitorPointCollectService;
+
+    /**
+     * 手动触发一次监测点采集（与定时任务 MonitorPointCollectJob 同一逻辑）
+     * <p>
+     * 采集涉及全量点(约 5000+)拉取第三方接口，故放入后台线程异步执行、接口立即返回；
+     * 进度可通过日志（MonitorPointCollectServiceImpl）观察。
+     */
+    @ApiOperation(value = "手动触发采集", notes = "立即执行一次第三方实时数据采集并落库")
+    @PostMapping("/collectNow")
+    public Result<String> collectNow() {
+        new Thread(() -> {
+            try {
+                monitorPointCollectService.collectOnce();
+            } catch (Exception e) {
+                log.error("手动触发监测点采集异常", e);
+            }
+        }, "monitor-point-collect-manual").start();
+        return Result.ok("采集已触发，请稍后查询实时/历史数据或查看日志");
+    }
 
     @ApiOperation(value = "实时值分页查询", notes = "按类别/在线/关键字查询监测点最新采集值")
     @GetMapping("/queryPage")
