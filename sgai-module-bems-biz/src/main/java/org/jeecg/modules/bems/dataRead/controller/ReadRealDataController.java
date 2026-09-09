@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.bems.dataRead.service.IPspaceWork;
-import org.jeecg.modules.bems.dataRead.service.impl.SpaceWorkImpl;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,7 +22,7 @@ import java.util.List;
 @AllArgsConstructor
 @Slf4j
 @Api(tags = "采集设备数据")
-public class ReadRealData {
+public class ReadRealDataController {
     private final IPspaceWork spaceWork;
     /**
      * 读取冷源设备属性实时值
