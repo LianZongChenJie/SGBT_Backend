@@ -115,13 +115,13 @@ public class DeviceAttributeServiceImpl extends ServiceImpl<DeviceAttributeMappe
                     attr.setValue("1".equals(attr.getValue().trim()) ? "true" : "false");
                 }
                 // 质量戳中英文翻译：quality_stamp 的 desc/name
-                if (StringUtils.isNotBlank(attr.getQualityStamp())) {
-                    QualityStamp qs = qsMap.get(attr.getQualityStamp().trim());
-                    if (qs != null) {
-                        attr.setQualityStampName(qs.getDesc());
-                        attr.setQualityStampEn(qs.getName());
-                    }
-                }
+//                if (StringUtils.isNotBlank(attr.getQualityStamp())) {
+//                    QualityStamp qs = qsMap.get(attr.getQualityStamp().trim());
+//                    if (qs != null) {
+//                        attr.setQualityStampName(qs.getDesc());
+//                        attr.setQualityStampEn(qs.getName());
+//                    }
+//                }
             }
         }
         return page;
