@@ -7,9 +7,9 @@ import com.sunwayland.pspace.entity.PsResult;
 import com.sunwayland.pspace.enums.PsErrorCodeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jeecg.modules.bems.alarm.service.IAlarmRecordService;
 import org.jeecg.modules.bems.dataRead.service.IPspaceWork;
 import org.jeecg.modules.bems.dataRead.util.PspaceUtils;
-import org.jeecg.modules.bems.mdm.constant.DeviceConstant;
 import org.jeecg.modules.bems.mdm.entity.Device;
 import org.jeecg.modules.bems.mdm.entity.DeviceAttribute;
 import org.jeecg.modules.bems.mdm.entity.DeviceAttributeHistory;
@@ -20,10 +20,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,12 +37,15 @@ public class SpaceWorkImpl implements IPspaceWork {
 
     private final IDeviceAttributeHistoryService deviceAttributeHistoryService;
 
+    private final IAlarmRecordService alarmRecordService;
+
     public SpaceWorkImpl(PspaceUtils pspaceUtils, IDeviceAttributeService deviceAttributeService,
-                         IDeviceService deviceService, IDeviceAttributeHistoryService deviceAttributeHistoryService) {
+                         IDeviceService deviceService, IDeviceAttributeHistoryService deviceAttributeHistoryService, IAlarmRecordService alarmRecordService) {
         this.pspaceUtils = pspaceUtils;
         this.deviceAttributeService = deviceAttributeService;
         this.deviceService = deviceService;
         this.deviceAttributeHistoryService = deviceAttributeHistoryService;
+        this.alarmRecordService = alarmRecordService;
     }
 
     /**
@@ -130,9 +131,13 @@ public class SpaceWorkImpl implements IPspaceWork {
         log.info("数字采集编码实时值刷新完成: 请求点数={}, 返回点数={}, 命中更新行数={}",
                 tagIds.size(), dataList.size(), updateCount);
         // 5.更新所属设备的运行状态与最后采集时间
-        this.updateDeviceGatherStatus(newAttributes, LocalDateTime.now(), "在线");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime dataTime = now.withMinute((now.getMinute() / 15) * 15).withSecond(0).withNano(0);
+        this.updateDeviceGatherStatus(newAttributes, dataTime, "在线");
         //6.存储设备属性历史数据（仅本次刷新到实时值的属性行）
-        this.saveDeviceAttributeHistory(newAttributes, LocalDateTime.now());
+        this.saveDeviceAttributeHistory(newAttributes, dataTime);
+        //7.存储告警记录
+        this.alertDevice(newAttributes);
         return updateCount;
     }
 
@@ -213,4 +218,14 @@ public class SpaceWorkImpl implements IPspaceWork {
         return updateCount;
     }
 
+
+    public void alertDevice(List<DeviceAttribute> attributes) {
+        try{
+            for(DeviceAttribute item : attributes){
+                alarmRecordService.alarmDetection(item.getDeviceId(),item.getId(),item.getValue());
+            }
+        }catch (Exception e){
+            log.error("点位值变化消息发送失败",e);
+        }
+    }
 }
