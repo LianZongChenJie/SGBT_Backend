@@ -1,5 +1,5 @@
 server:
-  port: 7020
+  port: 7021
 spring:
   application:
     name: sgai-bems-baotou
@@ -84,3 +84,9 @@ bems:
     nyz:
       url: http://192.168.3.63:8080/RealData
       tagids: 5116-5259
+pspace:
+  host: 47.95.156.86
+  port: 55672
+  username: admin
+  password: admin888
+  mock: false
