@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.sunwayland.pspace.entity.PsDataWithTagId;
 import com.sunwayland.pspace.entity.PsResult;
 import com.sunwayland.pspace.enums.PsErrorCodeEnum;
+import com.sunwayland.pspace.enums.PsQualityEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jeecg.modules.bems.alarm.service.IAlarmRecordService;
@@ -112,16 +113,19 @@ public class SpaceWorkImpl implements IPspaceWork {
             String valueStr = rawValue instanceof Boolean
                     ? (Boolean.TRUE.equals(rawValue) ? "1" : "0")
                     : String.valueOf(rawValue);
+            PsQualityEnum quality = item.getQuality();
             boolean updated = deviceAttributeService.update(new LambdaUpdateWrapper<DeviceAttribute>()
                     .eq(DeviceAttribute::getAcquisitionCoding, coding)
-                    .set(DeviceAttribute::getValue, valueStr));
+                    .set(DeviceAttribute::getValue, valueStr)
+                    .set(DeviceAttribute::getQualityStamp, quality.getDesc()));
             if (updated) {
                 updateCount++;
             }
-            // 编码匹配的属性行：写回 value，并作为“本次刷新点”收集（同一属性行重复返回时只保留一条）
+            // 编码匹配的属性行：写回 value 与质量戳，并作为“本次刷新点”收集（同一属性行重复返回时只保留一条）
             for (DeviceAttribute attr : attributes) {
                 if (attr != null && attr.getId() != null && Objects.equals(attr.getAcquisitionCoding(), coding)) {
                     attr.setValue(valueStr);
+                    attr.setQualityStamp(quality.getDesc());
                     if (collectedAttrIds.add(attr.getId())) {
                         newAttributes.add(attr);
                     }
@@ -163,6 +167,7 @@ public class SpaceWorkImpl implements IPspaceWork {
             history.setAttributeId(attr.getId());
             history.setCollectionTime(now);
             history.setValue(attr.getValue());
+            history.setQualityStamp(attr.getQualityStamp());
             historyList.add(history);
         }
         // 2.循环逐条入库（单条失败不影响其余记录，避免同一槽位重复插入时整批回滚）

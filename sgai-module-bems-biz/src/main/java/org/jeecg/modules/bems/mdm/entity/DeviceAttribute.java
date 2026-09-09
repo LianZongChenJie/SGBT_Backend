@@ -64,6 +64,11 @@ public class DeviceAttribute extends BaseEntity {
     private String value;
 
     /**
+     * 质量戳
+     */
+    private String qualityStamp;
+
+    /**
      * 采集时间
      */
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")

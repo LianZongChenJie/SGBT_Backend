@@ -38,4 +38,9 @@ public class DeviceAttributeHistory {
      */
     private String value;
 
+    /**
+     * 质量戳
+     */
+    private String qualityStamp;
+
 }
