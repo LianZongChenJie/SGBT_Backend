@@ -281,6 +281,20 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
+    public void updateStatusAndGatherTime(String deviceCode, String runStatus, LocalDateTime time) {
+        if(StringUtils.isEmpty(deviceCode) || runStatus == null || time == null){
+            return;
+        }
+        // 单条 SQL 同时更新运行状态与最后采集时间
+        update(new LambdaUpdateWrapper<Device>()
+                .eq(Device::getDeviceCode, deviceCode)
+                .set(Device::getRunState, runStatus)
+                .set(Device::getLastGatherTime, time));
+        // 同步运行状态属性（通讯状态 def_comm_state）
+        deviceAttributeService.updateAttributeForRunState(deviceCode, runStatus);
+    }
+
+    @Override
     public List<Device> findByCategoryIds(Collection<Long> categoryIds) {
         if(CollectionUtil.isEmpty(categoryIds)){
             return Collections.emptyList();

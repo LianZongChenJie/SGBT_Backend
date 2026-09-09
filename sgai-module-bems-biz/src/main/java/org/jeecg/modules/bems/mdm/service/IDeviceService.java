@@ -62,6 +62,15 @@ public interface IDeviceService extends IService<Device> {
      */
     void updateLastGatherTime(String deviceCode, LocalDateTime time);
 
+    /**
+     * 一次更新设备运行状态与最后采集时间（单条 SQL），并同步运行状态属性 def_comm_state。
+     * 等价于 updateStatus + updateLastGatherTime 的合并，避免同一设备执行两次更新。
+     * @param deviceCode 设备编号
+     * @param runStatus  目标运行状态（DeviceConstant.DEVICE_RUN_STATA_ONLINE/OFFLINE）
+     * @param time       本次采集时间
+     */
+    void updateStatusAndGatherTime(String deviceCode, String runStatus, LocalDateTime time);
+
     List<Device> findByCategoryIds(Collection<Long> categoryIds);
 
     IPage<Device> findDeviceAndAttribute(DeviceDto params);
