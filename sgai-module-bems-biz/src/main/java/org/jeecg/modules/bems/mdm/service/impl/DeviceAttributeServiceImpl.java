@@ -18,6 +18,8 @@ import org.jeecg.modules.bems.mdm.service.IDeviceAttributeService;
 import org.jeecg.modules.bems.mdm.service.IDeviceService;
 import org.jeecg.modules.bems.mdm.vo.DeviceAttributeDataVo;
 import org.jeecg.modules.bems.mq.send.MqSendService;
+import org.jeecg.modules.bems.patterned.entity.QualityStamp;
+import org.jeecg.modules.bems.patterned.service.IQualityStampService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,12 +38,15 @@ public class DeviceAttributeServiceImpl extends ServiceImpl<DeviceAttributeMappe
 
     private final IDeviceAttributeHistoryService deviceAttributeHistoryService;
 
+    private final IQualityStampService qualityStampService;
+
     private static final String RUN_STATE = "def_comm_state";
 
-    public DeviceAttributeServiceImpl(MqSendService mqSendService, @Lazy IDeviceService deviceService,IDeviceAttributeHistoryService deviceAttributeHistoryService) {
+    public DeviceAttributeServiceImpl(MqSendService mqSendService, @Lazy IDeviceService deviceService, IDeviceAttributeHistoryService deviceAttributeHistoryService, IQualityStampService qualityStampService) {
         this.mqSendService = mqSendService;
         this.deviceService = deviceService;
         this.deviceAttributeHistoryService = deviceAttributeHistoryService;
+        this.qualityStampService = qualityStampService;
     }
 
     @Override
@@ -66,10 +71,60 @@ public class DeviceAttributeServiceImpl extends ServiceImpl<DeviceAttributeMappe
     @Override
     public IPage<DeviceAttribute> queryPage(DeviceAttribute params) {
         IPage<DeviceAttribute> page = new Page<>(params.getPageNo(),params.getPageSize());
-        return page(page,new LambdaQueryWrapper<DeviceAttribute>()
+        page = page(page,new LambdaQueryWrapper<DeviceAttribute>()
                 .eq(DeviceAttribute::getDeviceId, params.getDeviceId())
                 .like(StringUtils.isNotEmpty(params.getAttributeName()), DeviceAttribute::getAttributeName, params.getAttributeName())
+                .like(StringUtils.isNotEmpty(params.getAttributeCode()), DeviceAttribute::getAttributeCode, params.getAttributeCode())
                 .orderByDesc(DeviceAttribute::getSort));
+        List<DeviceAttribute> records = page.getRecords();
+        if (records != null && !records.isEmpty()) {
+            // 采集时间取自所属设备(device.last_gather_time)，而非属性表自身 gather_time
+            Map<Long, Device> deviceMap = new HashMap<>();
+            List<Long> deviceIds = records.stream()
+                    .map(DeviceAttribute::getDeviceId)
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!deviceIds.isEmpty()) {
+                List<Device> devices = deviceService.listByIds(deviceIds);
+                if (devices != null) {
+                    for (Device d : devices) {
+                        deviceMap.put(d.getId(), d);
+                    }
+                }
+            }
+            // 质量戳字典：ID(码) -> QualityStamp
+            Map<String, QualityStamp> qsMap = new HashMap<>();
+            List<QualityStamp> qsList = qualityStampService.getList();
+            if (qsList != null) {
+                for (QualityStamp qs : qsList) {
+                    qsMap.put(qs.getID(), qs);
+                }
+            }
+            for (DeviceAttribute attr : records) {
+                // 用设备采集时间覆盖属性采集时间（不冗余属性自身时间）
+                if (attr.getDeviceId() != null) {
+                    Device dev = deviceMap.get(attr.getDeviceId());
+                    if (dev != null && dev.getLastGatherTime() != null) {
+                        attr.setGatherTime(dev.getLastGatherTime());
+                    }
+                }
+                // BOOL 类型 value 归一化：采集存 1/0，返回统一转为 true/false
+                if (DeviceAttribute.VALUE_TYPE_BOOL.equals(attr.getValueType())
+                        && attr.getValue() != null) {
+                    attr.setValue("1".equals(attr.getValue().trim()) ? "true" : "false");
+                }
+                // 质量戳中英文翻译：quality_stamp 的 desc/name
+//                if (StringUtils.isNotBlank(attr.getQualityStamp())) {
+//                    QualityStamp qs = qsMap.get(attr.getQualityStamp().trim());
+//                    if (qs != null) {
+//                        attr.setQualityStampName(qs.getDesc());
+//                        attr.setQualityStampEn(qs.getName());
+//                    }
+//                }
+            }
+        }
+        return page;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.jeecg.modules.bems.mdm.entity;
 
 import com.alibaba.fastjson.JSONArray;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -27,6 +28,15 @@ public class DeviceAttribute extends BaseEntity {
      * 读写级别：读写
      */
     public static final String READWRITE_LEVEL_WRITE = "1";
+
+    /**
+     * 值类型：布尔
+     */
+    public static final String VALUE_TYPE_BOOL = "BOOL";
+    /**
+     * 值类型：数值
+     */
+    public static final String VALUE_TYPE_DOUBLE = "DOUBLE";
 
     /**
      * 设备id
@@ -67,6 +77,20 @@ public class DeviceAttribute extends BaseEntity {
      * 质量戳
      */
     private String qualityStamp;
+
+
+
+    /**
+     * 质量戳中文名称(质量码 -> quality_stamp.desc，查询返回用)
+     */
+    @TableField(exist = false)
+    private String qualityStampName;
+
+    /**
+     * 质量戳英文名称(质量码 -> quality_stamp.name，查询返回用)
+     */
+    @TableField(exist = false)
+    private String qualityStampEn;
 
     /**
      * 采集时间
