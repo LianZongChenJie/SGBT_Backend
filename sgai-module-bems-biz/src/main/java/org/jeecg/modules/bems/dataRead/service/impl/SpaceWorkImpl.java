@@ -75,12 +75,12 @@ public class SpaceWorkImpl implements IPspaceWork {
      */
     @Override
     public int refreshRealValueByNumericAcquisition() {
-        // 1.只查询采集编码为纯数字的属性（达梦 regexp_like）
+        // 1.只查询采集编码为纯数字的属性（兼容 MySQL 的 REGEXP）
         List<DeviceAttribute> attributes = deviceAttributeService.list(
                 new LambdaQueryWrapper<DeviceAttribute>()
                         .isNotNull(DeviceAttribute::getAcquisitionCoding)
                         .ne(DeviceAttribute::getAcquisitionCoding, "")
-                        .apply("regexp_like(acquisition_coding, '^[0-9]+$')"));
+                        .apply("acquisition_coding REGEXP '^[0-9]+$'"));
         // 2.过滤采集编码为纯数字的记录，作为 tagId 集合
         List<Long> tagIds = attributes.stream()
                 .map(DeviceAttribute::getAcquisitionCoding)
