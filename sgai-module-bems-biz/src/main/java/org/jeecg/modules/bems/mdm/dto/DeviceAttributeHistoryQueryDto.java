@@ -5,11 +5,13 @@ import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class DeviceAttributeHistoryQueryDto {
 
     private Long deviceAttributeId;
+    private List<Long> deviceAttributeIds;
 
     private Integer pageNo = 1;
 

@@ -56,4 +56,14 @@ public class DeviceAttributeHistoryServiceImpl extends ServiceImpl<DeviceAttribu
             save(history);
         }
     }
+    @Override
+    public List<DeviceAttributeHistory> listByAttributeIds(DeviceAttributeHistoryQueryDto param) {
+        if (param.getDeviceAttributeIds() == null) {
+            return Collections.emptyList();
+        }
+        return super.list(new LambdaQueryWrapper<DeviceAttributeHistory>()
+                .in(DeviceAttributeHistory::getAttributeId, param.getDeviceAttributeIds())
+                .between(DeviceAttributeHistory::getCollectionTime, param.getStartTime(), param.getEndTime())
+                .orderByDesc(DeviceAttributeHistory::getCollectionTime));
+    }
 }

@@ -12,4 +12,5 @@ public interface IDeviceAttributeHistoryService extends IService<DeviceAttribute
     List<DeviceAttributeHistory> listByAttributeId(DeviceAttributeHistoryQueryDto param);
 
     void saveAttributeHistory(Collection<DeviceAttribute> attributes);
+    List<DeviceAttributeHistory> listByAttributeIds(DeviceAttributeHistoryQueryDto param);
 }
