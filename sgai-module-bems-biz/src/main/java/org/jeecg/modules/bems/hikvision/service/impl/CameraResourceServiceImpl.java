@@ -1,6 +1,7 @@
 package org.jeecg.modules.bems.hikvision.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -14,10 +15,12 @@ import org.jeecg.modules.bems.hikvision.dto.CameraCoordinateGroupVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraListVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraOnlineRequest;
 import org.jeecg.modules.bems.hikvision.dto.CameraOnlineResponse;
+import org.jeecg.modules.bems.hikvision.dto.CameraPlaybackUrlVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraPlayUrlVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraResourcePageDto;
 import org.jeecg.modules.bems.hikvision.dto.CameraSearchRequest;
 import org.jeecg.modules.bems.hikvision.dto.CameraSearchResponse;
+import org.jeecg.modules.bems.hikvision.dto.PlaybackUrlRequest;
 import org.jeecg.modules.bems.hikvision.dto.PlayUrlRequest;
 import org.jeecg.modules.bems.hikvision.dto.RegionCameraTreeVO;
 import org.jeecg.modules.bems.hikvision.entity.CameraResource;
@@ -34,6 +37,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -67,6 +75,22 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
     private static final String CAMERA_PREVIEW_URL_API = "/api/video/v2/cameras/previewURLs";
 
     /**
+     * 海康获取监控点回放地址API路径
+     */
+    private static final String CAMERA_PLAYBACK_URL_API = "/api/video/v2/cameras/playbackURLs";
+
+    /**
+     * 回放地址时间格式（ISO8601：yyyy-MM-dd'T'HH:mm:ss.SSSXXX）
+     */
+    private static final DateTimeFormatter ISO_OFFSET_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+
+    /**
+     * 回放最大时间跨度（天）：开始时间与结束时间相差不超过3天
+     */
+    private static final int PLAYBACK_MAX_SPAN_DAYS = 3;
+
+    /**
      * 海康监控点在线状态查询API路径
      */
     private static final String CAMERA_ONLINE_API = "/api/nms/v1/online/camera/get";
@@ -94,7 +118,7 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
     private final RegionResourceMapper regionResourceMapper;
 
     /**
-     * HLS流管理器：负责RTMP拉流转码、流复用与无人观看自动停止
+     * HLS流管理器：负责RTSP拉流转码、流复用与无人观看自动停止
      */
     private final HlsStreamManager hlsStreamManager;
 
@@ -359,7 +383,6 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
         request.setStreamType(0);
         request.setProtocol("hls");
         request.setTransmode(1);
-        request.setStreamform("ps");
         return request;
     }
 
@@ -372,27 +395,27 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
 
         log.info("开始获取摄像头[{}]的本地HLS播放地址", cameraIndexCode);
 
-        // 1. 请求海康SDK获取RTMP播放地址
-        PlayUrlRequest request = buildRtmpPlayUrlRequest(cameraIndexCode);
+        // 1. 请求海康SDK获取RTSP播放地址
+        PlayUrlRequest request = buildRtspPlayUrlRequest(cameraIndexCode);
         String requestBody = JSON.toJSONString(request);
-        log.info("请求海康摄像头RTMP播放地址, cameraIndexCode={}", cameraIndexCode);
+        log.info("请求海康摄像头RTSP播放地址, cameraIndexCode={}", cameraIndexCode);
 
         String responseBody = hikvisionUtil.doPostJson(CAMERA_PREVIEW_URL_API, requestBody);
         if (!hikvisionUtil.isSuccess(responseBody)) {
-            log.error("获取摄像头[{}]RTMP地址失败, 海康响应: {}", cameraIndexCode, responseBody);
+            log.error("获取摄像头[{}]RTSP地址失败, 海康响应: {}", cameraIndexCode, responseBody);
             return null;
         }
 
         JSONObject dataJson = hikvisionUtil.getResponseData(responseBody);
         if (dataJson == null || StringUtils.isBlank(dataJson.getString("url"))) {
-            log.warn("摄像头[{}] 海康未返回RTMP地址", cameraIndexCode);
+            log.warn("摄像头[{}] 海康未返回RTSP地址", cameraIndexCode);
             return null;
         }
-        String rtmpUrl = dataJson.getString("url");
-        log.info("摄像头[{}] RTMP地址获取成功", cameraIndexCode);
+        String rtspUrl = dataJson.getString("url");
+        log.info("摄像头[{}] RTSP地址获取成功", cameraIndexCode);
 
         // 2. 通过HLS流管理器获取本地HLS流：同一摄像头正在拉流时直接复用，不重复转码
-        CameraHlsStream stream = hlsStreamManager.getOrCreate(cameraIndexCode, rtmpUrl);
+        CameraHlsStream stream = hlsStreamManager.getOrCreate(cameraIndexCode, rtspUrl);
         if (stream == null) {
             log.error("摄像头[{}] HLS转码任务创建失败", cameraIndexCode);
             return null;
@@ -416,16 +439,250 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
     }
 
     /**
-     * 构建获取RTMP播放地址的固定请求参数（协议为rtmp，由JavaCV本地拉流转码为HLS）
+     * 构建获取RTSP播放地址的固定请求参数（协议为rtsp，由JavaCV本地拉流转码为HLS）
      */
-    private PlayUrlRequest buildRtmpPlayUrlRequest(String cameraIndexCode) {
+    private PlayUrlRequest buildRtspPlayUrlRequest(String cameraIndexCode) {
         PlayUrlRequest request = new PlayUrlRequest();
         request.setCameraIndexCode(cameraIndexCode);
         request.setStreamType(0);
-        request.setProtocol("rtmp");
+        request.setProtocol("rtsp");
         request.setTransmode(1);
         request.setExpand("transcode=0");
         return request;
+    }
+
+    @Override
+    public List<CameraPlaybackUrlVO> getPlaybackUrls(List<String> cameraIndexCodes, String beginTime, String endTime) {
+        if (cameraIndexCodes == null || cameraIndexCodes.isEmpty()) {
+            log.warn("获取回放地址失败: cameraIndexCodes为空");
+            return Collections.emptyList();
+        }
+
+        // 解析并校验回放时间段（默认结束时间为当前时间，开始时间为结束时间前3天）
+        PlaybackTimeRange range = resolvePlaybackTimeRange(beginTime, endTime);
+
+        log.info("开始从海康平台获取{}个摄像头的HLS回放地址, beginTime={}, endTime={}",
+                cameraIndexCodes.size(), range.getBeginTime(), range.getEndTime());
+        List<CameraPlaybackUrlVO> result = new ArrayList<>();
+
+        for (String cameraIndexCode : cameraIndexCodes) {
+            try {
+                // 1. 请求海康SDK直接获取HLS回放地址（无需本地拉流转码）
+                PlaybackUrlRequest request = buildPlaybackUrlRequest(cameraIndexCode, "hls", range);
+                String requestBody = JSON.toJSONString(request);
+                log.info("请求海康摄像头HLS回放地址, cameraIndexCode={}, body={}", cameraIndexCode, requestBody);
+
+                String responseBody = hikvisionUtil.doPostJson(CAMERA_PLAYBACK_URL_API, requestBody);
+
+                if (!hikvisionUtil.isSuccess(responseBody)) {
+                    log.error("获取摄像头[{}]HLS回放地址失败, 海康响应: {}", cameraIndexCode, responseBody);
+                    continue;
+                }
+
+                JSONObject dataJson = hikvisionUtil.getResponseData(responseBody);
+                if (dataJson == null || StringUtils.isBlank(dataJson.getString("url"))) {
+                    log.warn("摄像头[{}] 海康未返回HLS回放地址", cameraIndexCode);
+                    continue;
+                }
+
+                // 2. 解析海康返回的回放地址、分页标记与录像片段列表
+                CameraPlaybackUrlVO vo = new CameraPlaybackUrlVO();
+                vo.setCameraIndexCode(cameraIndexCode);
+                vo.setUrl(dataJson.getString("url"));
+                vo.setUuid(dataJson.getString("uuid"));
+                JSONArray segmentArray = dataJson.getJSONArray("list");
+                if (segmentArray != null) {
+                    vo.setList(segmentArray.toJavaList(CameraPlaybackUrlVO.PlaybackSegment.class));
+                }
+                result.add(vo);
+                log.info("摄像头[{}] HLS回放地址: {}", cameraIndexCode, vo.getUrl());
+            } catch (Exception e) {
+                log.error("获取摄像头[{}]HLS回放地址异常", cameraIndexCode, e);
+            }
+        }
+
+        log.info("HLS回放地址获取完成, 成功{}个/共{}个", result.size(), cameraIndexCodes.size());
+        return result;
+    }
+
+    @Override
+    public CameraPlaybackUrlVO getLocalHlsPlaybackUrl(String cameraIndexCode, String beginTime, String endTime) throws Exception {
+        if (StringUtils.isBlank(cameraIndexCode)) {
+            log.warn("获取本地HLS回放地址失败: cameraIndexCode为空");
+            return null;
+        }
+
+        // 解析并校验回放时间段（默认结束时间为当前时间，开始时间为结束时间前3天）
+        PlaybackTimeRange range = resolvePlaybackTimeRange(beginTime, endTime);
+
+        log.info("开始获取摄像头[{}]的本地HLS回放地址, beginTime={}, endTime={}",
+                cameraIndexCode, range.getBeginTime(), range.getEndTime());
+
+        // 1. 请求海康SDK获取RTSP回放地址
+        PlaybackUrlRequest request = buildPlaybackUrlRequest(cameraIndexCode, "rtsp", range);
+        String requestBody = JSON.toJSONString(request);
+        log.info("请求海康摄像头RTSP回放地址, cameraIndexCode={}, body={}", cameraIndexCode, requestBody);
+
+        String responseBody = hikvisionUtil.doPostJson(CAMERA_PLAYBACK_URL_API, requestBody);
+        if (!hikvisionUtil.isSuccess(responseBody)) {
+            log.error("获取摄像头[{}]RTSP回放地址失败, 海康响应: {}", cameraIndexCode, responseBody);
+            return null;
+        }
+
+        JSONObject dataJson = hikvisionUtil.getResponseData(responseBody);
+        if (dataJson == null || StringUtils.isBlank(dataJson.getString("url"))) {
+            log.warn("摄像头[{}] 海康未返回RTSP回放地址", cameraIndexCode);
+            return null;
+        }
+        String rtspUrl = dataJson.getString("url");
+        log.info("摄像头[{}] RTSP回放地址获取成功", cameraIndexCode);
+
+        // 2. 通过HLS流管理器获取本地HLS流：流标识按摄像头+时间段唯一，避免与实时流冲突，同一回放时段直接复用
+        String streamKey = "pb_" + cameraIndexCode + "_" + range.getBeginMillis() + "_" + range.getEndMillis();
+        CameraHlsStream stream = hlsStreamManager.getOrCreate(streamKey, cameraIndexCode, rtspUrl);
+        if (stream == null) {
+            log.error("摄像头[{}] HLS回放转码任务创建失败", cameraIndexCode);
+            return null;
+        }
+
+        // 3. 等待HLS流就绪（首个切片已生成），超时仍返回地址由前端自行重试
+        boolean ready = stream.awaitReady(hlsProperties.getReadyWaitSeconds());
+        if (!ready) {
+            if (!stream.isRunning()) {
+                log.error("摄像头[{}] HLS回放转码启动失败: {}", cameraIndexCode, stream.getErrorMessage());
+                hlsStreamManager.removeStream(streamKey);
+                return null;
+            }
+            log.warn("摄像头[{}] HLS回放流未在{}s内就绪, 仍返回地址由前端重试",
+                    cameraIndexCode, hlsProperties.getReadyWaitSeconds());
+        }
+
+        // 4. 返回本地HLS相对回放地址（由Controller拼装完整访问地址）
+        log.info("摄像头[{}] 本地HLS回放地址: {}", cameraIndexCode, stream.getHlsRelativeUrl());
+        CameraPlaybackUrlVO vo = new CameraPlaybackUrlVO();
+        vo.setCameraIndexCode(cameraIndexCode);
+        vo.setUrl(stream.getHlsRelativeUrl());
+        vo.setUuid(dataJson.getString("uuid"));
+        return vo;
+    }
+
+    /**
+     * 构建获取回放地址的请求参数
+     *
+     * @param cameraIndexCode 摄像头唯一编码
+     * @param protocol        取流协议（hls/rtsp等）
+     * @param range           已校验的回放时间段
+     */
+    private PlaybackUrlRequest buildPlaybackUrlRequest(String cameraIndexCode, String protocol, PlaybackTimeRange range) {
+        PlaybackUrlRequest request = new PlaybackUrlRequest();
+        request.setCameraIndexCode(cameraIndexCode);
+        request.setRecordLocation("0");
+        request.setProtocol(protocol);
+        request.setTransmode(1);
+        request.setBeginTime(range.getBeginTime());
+        request.setEndTime(range.getEndTime());
+        return request;
+    }
+
+    /**
+     * 解析并校验回放时间段
+     * <p>默认结束时间为当前时间、开始时间为结束时间前3天；开始时间不得晚于结束时间，
+     * 且两者相差不超过3天（海康接口限制）。</p>
+     *
+     * @param beginTime 开始时间字符串（可为空，支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @param endTime   结束时间字符串（可为空，支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @return 已格式化为 ISO8601 的回放时间段
+     */
+    private PlaybackTimeRange resolvePlaybackTimeRange(String beginTime, String endTime) {
+        ZonedDateTime end = parsePlaybackTime(endTime);
+        if (end == null) {
+            end = ZonedDateTime.now();
+        }
+        ZonedDateTime begin = parsePlaybackTime(beginTime);
+        if (begin == null) {
+            begin = end.minusDays(PLAYBACK_MAX_SPAN_DAYS);
+        }
+
+        if (begin.isAfter(end)) {
+            throw new IllegalArgumentException("开始时间不能晚于结束时间");
+        }
+        if (end.isAfter(begin.plusDays(PLAYBACK_MAX_SPAN_DAYS))) {
+            throw new IllegalArgumentException("开始时间与结束时间相差不能超过3天");
+        }
+
+        return new PlaybackTimeRange(
+                begin.format(ISO_OFFSET_FORMATTER),
+                end.format(ISO_OFFSET_FORMATTER),
+                begin.toInstant().toEpochMilli(),
+                end.toInstant().toEpochMilli());
+    }
+
+    /**
+     * 解析时间字符串为带时区的 ZonedDateTime
+     * <p>兼容 ISO8601（带时区/带毫秒）与 yyyy-MM-dd HH:mm:ss 等常见格式，无时区按系统默认时区处理。</p>
+     *
+     * @param value 时间字符串，为空返回null
+     * @return ZonedDateTime，解析失败抛出 IllegalArgumentException
+     */
+    private ZonedDateTime parsePlaybackTime(String value) {
+        if (StringUtils.isBlank(value)) {
+            return null;
+        }
+        String v = value.trim();
+        // 带时区的 ISO8601，例如 2017-06-14T00:00:00.000+08:00
+        try {
+            return ZonedDateTime.parse(v);
+        } catch (DateTimeParseException ignored) {
+            // 尝试下一种格式
+        }
+        // 无时区的常见格式，按系统默认时区处理
+        String[] patterns = {
+                "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd HH:mm:ss"
+        };
+        for (String pattern : patterns) {
+            try {
+                return LocalDateTime.parse(v, DateTimeFormatter.ofPattern(pattern))
+                        .atZone(ZoneId.systemDefault());
+            } catch (DateTimeParseException ignored) {
+                // 尝试下一种格式
+            }
+        }
+        throw new IllegalArgumentException("时间格式不正确(支持 yyyy-MM-dd HH:mm:ss 或 ISO8601): " + value);
+    }
+
+    /**
+     * 回放时间段：已格式化的 ISO8601 字符串 + 起止毫秒时间戳（用作本地HLS流标识）
+     */
+    private static class PlaybackTimeRange {
+        private final String beginTime;
+        private final String endTime;
+        private final long beginMillis;
+        private final long endMillis;
+
+        PlaybackTimeRange(String beginTime, String endTime, long beginMillis, long endMillis) {
+            this.beginTime = beginTime;
+            this.endTime = endTime;
+            this.beginMillis = beginMillis;
+            this.endMillis = endMillis;
+        }
+
+        String getBeginTime() {
+            return beginTime;
+        }
+
+        String getEndTime() {
+            return endTime;
+        }
+
+        long getBeginMillis() {
+            return beginMillis;
+        }
+
+        long getEndMillis() {
+            return endMillis;
+        }
     }
 
     @Override

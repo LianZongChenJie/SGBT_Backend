@@ -51,17 +51,31 @@
             <artifactId>pSpace-javaSDK</artifactId>
             <version>2.2.1</version>
         </dependency>
-        <!--JavaCV: 拉取RTSP流并转码为本地HLS切片（复用同一路拉流、无人观看自动停止）-->
+        <!--
+            JavaCV: 拉取RTSP流并转码为本地HLS切片（复用同一路拉流、无人观看自动停止）
+            ⚠️ 版本必须锁定在 1.5.9，不要升级到 1.5.10+：
+            1.5.10 起的 Linux 原生库（libavutil/libavformat/libavcodec 等）依赖 GLIBC_2.29，
+            而部署环境 glibc 为 2.28，会导致 dlopen 失败并报
+            "no jniavutil in java.library.path"。
+            1.5.9（ffmpeg 6.0-1.5.9）的原生库仅要求 GLIBC_2.17，兼容 glibc 2.28。
+            如需升级 JavaCV，必须先确认目标环境的 glibc 版本。
+        -->
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>javacv</artifactId>
-            <version>1.5.11</version>
+            <version>1.5.9</version>
         </dependency>
-        <!--ffmpeg全平台原生库（按需裁剪：仅保留部署平台可减小体积，如ffmpeg:7.1-1.5.11:windows-x86_64）-->
         <dependency>
             <groupId>org.bytedeco</groupId>
-            <artifactId>ffmpeg-platform</artifactId>
-            <version>7.1-1.5.11</version>
+            <artifactId>ffmpeg</artifactId>
+            <version>6.0-1.5.9</version>
+            <classifier>linux-x86_64</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacpp</artifactId>
+            <version>1.5.9</version>
+            <classifier>linux-x86_64</classifier>
         </dependency>
         <dependency>
             <groupId>org.jeecgframework.boot</groupId>

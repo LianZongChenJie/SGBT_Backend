@@ -11,6 +11,7 @@ import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.bems.hikvision.config.HlsProperties;
 import org.jeecg.modules.bems.hikvision.dto.CameraCoordinateGroupVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraListVO;
+import org.jeecg.modules.bems.hikvision.dto.CameraPlaybackUrlVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraPlayUrlVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraResourcePageDto;
 import org.jeecg.modules.bems.hikvision.dto.RegionCameraTreeVO;
@@ -94,7 +95,7 @@ public class CameraResourceController {
 
     /**
      * 获取摄像头本地HLS播放地址
-     * <p>流程：前端传入1个摄像头唯一编码 -> 海康SDK获取RTMP地址 -> JavaCV本地转码为HLS ->
+     * <p>流程：前端传入1个摄像头唯一编码 -> 海康SDK获取RTSP地址 -> JavaCV本地转码为HLS ->
      * 返回 /hls/{编码}/index.m3u8 完整访问地址。同一摄像头正在拉流时直接复用已生成的HLS流，不做重复转码。</p>
      *
      * @param cameraIndexCode 摄像头唯一编码
@@ -102,7 +103,7 @@ public class CameraResourceController {
      * @return 播放地址（包含 cameraIndexCode 和 url）
      */
     @GetMapping("/localPlayUrl")
-    @ApiOperation(value = "获取摄像头本地HLS播放地址", notes = "传入单个摄像头唯一编码，海康RTMP经本地转码为HLS后返回完整播放地址")
+    @ApiOperation(value = "获取摄像头本地HLS播放地址", notes = "传入单个摄像头唯一编码，海康RTSP经本地转码为HLS后返回完整播放地址")
     public Result<CameraPlayUrlVO> getLocalPlayUrl(String cameraIndexCode, HttpServletRequest request) {
         try {
             if (StringUtils.isBlank(cameraIndexCode)) {
@@ -116,6 +117,68 @@ public class CameraResourceController {
         } catch (Exception e) {
             log.error("获取摄像头本地HLS播放地址失败", e);
             return Result.error("获取摄像头本地HLS播放地址失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取摄像头海康HLS回放地址
+     * <p>流程：前端传入1个摄像头唯一编码与回放时间段 -> 调用海康OpenAPI（playbackURLs，protocol=hls）
+     * 直接获取回放地址 -> 返回海康流媒体服务提供的完整回放地址（服务端不做本地拉流转码）。</p>
+     * <p>开始/结束时间为空时默认结束时间为当前时间、开始时间为结束时间前3天；两者相差不超过3天。</p>
+     *
+     * @param cameraIndexCode 摄像头唯一编码
+     * @param beginTime       开始时间（可选，支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @param endTime         结束时间（可选，支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @return 回放地址（包含 cameraIndexCode、url、uuid 及录像片段列表）
+     */
+    @GetMapping("/playbackUrls")
+    @ApiOperation(value = "获取摄像头海康HLS回放地址", notes = "传入单个摄像头唯一编码与回放时间段（默认最近三天），返回海康平台直接提供的HLS回放地址")
+    public Result<CameraPlaybackUrlVO> getPlaybackUrls(String cameraIndexCode, String beginTime, String endTime) {
+        try {
+            if (StringUtils.isBlank(cameraIndexCode)) {
+                return Result.error("摄像头唯一编码不能为空");
+            }
+            List<CameraPlaybackUrlVO> playbackUrls =
+                    cameraResourceService.getPlaybackUrls(Collections.singletonList(cameraIndexCode), beginTime, endTime);
+            return Result.ok(playbackUrls.isEmpty() ? null : playbackUrls.get(0));
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("获取摄像头回放地址失败", e);
+            return Result.error("获取摄像头回放地址失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取摄像头本地HLS回放地址
+     * <p>流程：前端传入1个摄像头唯一编码与回放时间段 -> 海康SDK获取RTSP回放地址 -> JavaCV本地转码为HLS ->
+     * 返回 /hls/{流标识}/index.m3u8 完整访问地址。同一摄像头同一时段正在拉流时直接复用已生成的HLS流，不做重复转码。</p>
+     * <p>开始/结束时间为空时默认结束时间为当前时间、开始时间为结束时间前3天；两者相差不超过3天。</p>
+     *
+     * @param cameraIndexCode 摄像头唯一编码
+     * @param beginTime       开始时间（可选，支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @param endTime         结束时间（可选，支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @param request         当前请求，用于拼接HLS访问地址
+     * @return 回放地址（包含 cameraIndexCode 和 url）
+     */
+    @GetMapping("/localPlaybackUrl")
+    @ApiOperation(value = "获取摄像头本地HLS回放地址", notes = "传入单个摄像头唯一编码与回放时间段（默认最近三天），海康RTSP回放流经本地转码为HLS后返回完整回放地址")
+    public Result<CameraPlaybackUrlVO> getLocalPlaybackUrl(String cameraIndexCode, String beginTime, String endTime,
+                                                           HttpServletRequest request) {
+        try {
+            if (StringUtils.isBlank(cameraIndexCode)) {
+                return Result.error("摄像头唯一编码不能为空");
+            }
+            CameraPlaybackUrlVO vo = cameraResourceService.getLocalHlsPlaybackUrl(cameraIndexCode, beginTime, endTime);
+            if (vo != null && vo.getUrl() != null && vo.getUrl().startsWith("/")) {
+                vo.setUrl(buildBaseUrl(request) + vo.getUrl());
+            }
+            return Result.ok(vo);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("获取摄像头本地HLS回放地址失败", e);
+            return Result.error("获取摄像头本地HLS回放地址失败: " + e.getMessage());
         }
     }
 

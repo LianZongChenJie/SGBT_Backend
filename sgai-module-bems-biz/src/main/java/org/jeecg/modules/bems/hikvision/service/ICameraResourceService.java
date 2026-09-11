@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.jeecg.modules.bems.hikvision.entity.CameraResource;
 import org.jeecg.modules.bems.hikvision.dto.CameraCoordinateGroupVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraListVO;
+import org.jeecg.modules.bems.hikvision.dto.CameraPlaybackUrlVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraPlayUrlVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraResourcePageDto;
 import org.jeecg.modules.bems.hikvision.dto.RegionCameraTreeVO;
@@ -38,13 +39,37 @@ public interface ICameraResourceService extends IService<CameraResource> {
 
     /**
      * 根据单个摄像头唯一编码，获取本地HLS播放地址
-     * <p>流程：海康SDK获取RTMP地址 -> JavaCV本地转码为HLS -> 返回 /hls/{编码}/index.m3u8 相对地址。
+     * <p>流程：海康SDK获取RTSP地址 -> JavaCV本地转码为HLS -> 返回 /hls/{编码}/index.m3u8 相对地址。
      * 同一摄像头正在拉流时直接复用已生成的HLS流，不做重复转码。</p>
      *
      * @param cameraIndexCode 摄像头唯一编码
      * @return 本地HLS播放地址（含摄像头编码与相对地址），失败返回null
      */
     CameraPlayUrlVO getLocalHlsPlayUrl(String cameraIndexCode) throws Exception;
+
+    /**
+     * 根据摄像头唯一编码与回放时间段，直接从海康平台获取HLS回放地址
+     * <p>调用海康OpenAPI（playbackURLs，protocol=hls）获取回放地址，由海康流媒体服务直接输出HLS，
+     * 服务端不做本地拉流转码。</p>
+     *
+     * @param cameraIndexCodes 摄像头唯一编码列表（1个或多个）
+     * @param beginTime        开始时间，为空默认结束时间前3天（支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @param endTime          结束时间，为空默认当前时间（支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @return 每个摄像头的HLS回放地址列表
+     */
+    List<CameraPlaybackUrlVO> getPlaybackUrls(List<String> cameraIndexCodes, String beginTime, String endTime);
+
+    /**
+     * 根据单个摄像头唯一编码与回放时间段，获取本地HLS回放地址
+     * <p>流程：海康SDK获取RTSP回放地址 -> JavaCV本地转码为HLS -> 返回 /hls/{流标识}/index.m3u8 相对地址。
+     * 同一摄像头同一时段正在拉流时直接复用已生成的HLS流，不做重复转码。</p>
+     *
+     * @param cameraIndexCode 摄像头唯一编码
+     * @param beginTime       开始时间，为空默认结束时间前3天（支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @param endTime         结束时间，为空默认当前时间（支持 yyyy-MM-dd HH:mm:ss 或 ISO8601）
+     * @return 本地HLS回放地址（含摄像头编码与相对地址），失败返回null
+     */
+    CameraPlaybackUrlVO getLocalHlsPlaybackUrl(String cameraIndexCode, String beginTime, String endTime) throws Exception;
 
     /**
      * 从海康平台查询监控点在线状态并更新到数据库

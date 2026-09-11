@@ -15,12 +15,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * HLS流管理器：管理所有摄像头的RTMP拉流转码任务
+ * HLS流管理器：管理所有摄像头的RTSP拉流转码任务
  * <p>
  * 核心机制：
  * <ul>
  *   <li><b>流复用</b>：同一摄像头编码的拉流转码任务全局唯一，多路观看共享同一路HLS输出，
- *       已存在的流直接返回HLS地址，避免重复占用摄像头RTMP通道；</li>
+ *       已存在的流直接返回HLS地址，避免重复占用摄像头RTSP通道；</li>
  *   <li><b>引用计数</b>：获取播放地址时 +1，前端主动调用释放接口时 -1；</li>
  *   <li><b>无人观看自动停止</b>：观看人数为0且空闲超过阈值，或前端心跳超时（页面异常关闭兜底），
  *       自动停止拉流转码并清理HLS临时文件，释放摄像头通道；</li>
@@ -73,20 +73,34 @@ public class HlsStreamManager {
      * 获取摄像头HLS流（已存在且正在拉流则直接复用，否则新建并启动转码任务），并增加观看计数
      *
      * @param cameraIndexCode 摄像头唯一编码
-     * @param rtmpUrl         RTMP播放地址（首次创建时使用）
+     * @param rtspUrl         RTSP播放地址（首次创建时使用）
      * @return 流任务，创建/启动失败返回 null
      */
-    public CameraHlsStream getOrCreate(String cameraIndexCode, String rtmpUrl) {
-        CameraHlsStream stream = streams.get(cameraIndexCode);
+    public CameraHlsStream getOrCreate(String cameraIndexCode, String rtspUrl) {
+        return getOrCreate(cameraIndexCode, cameraIndexCode, rtspUrl);
+    }
+
+    /**
+     * 获取HLS流（已存在且正在拉流则直接复用，否则新建并启动转码任务），并增加观看计数
+     * <p>用于回放等场景：streamKey 与 cameraIndexCode 分离，避免同一摄像头的实时流与回放流
+     * 因共用同一路HLS输出而互相冲突。</p>
+     *
+     * @param streamKey       流唯一标识（同时作为HLS输出目录与访问路径）
+     * @param cameraIndexCode 摄像头唯一编码（仅用于日志标识）
+     * @param rtspUrl         RTSP播放地址（首次创建时使用）
+     * @return 流任务，创建/启动失败返回 null
+     */
+    public CameraHlsStream getOrCreate(String streamKey, String cameraIndexCode, String rtspUrl) {
+        CameraHlsStream stream = streams.get(streamKey);
         if (stream == null || !stream.isRunning()) {
             synchronized (this) {
-                stream = streams.get(cameraIndexCode);
+                stream = streams.get(streamKey);
                 if (stream == null || !stream.isRunning()) {
-                    stream = createStream(cameraIndexCode, rtmpUrl);
+                    stream = createStream(streamKey, cameraIndexCode, rtspUrl);
                     if (stream == null) {
                         return null;
                     }
-                    streams.put(cameraIndexCode, stream);
+                    streams.put(streamKey, stream);
                 }
             }
         }
@@ -94,11 +108,11 @@ public class HlsStreamManager {
         return stream;
     }
 
-    private CameraHlsStream createStream(String cameraIndexCode, String rtmpUrl) {
-        File outputDir = new File(hlsProperties.getOutputDir(), cameraIndexCode);
+    private CameraHlsStream createStream(String streamKey, String cameraIndexCode, String rtspUrl) {
+        File outputDir = new File(hlsProperties.getOutputDir(), streamKey);
         CameraHlsStream stream = new CameraHlsStream(
-                cameraIndexCode, rtmpUrl, outputDir,
-                "/hls/" + cameraIndexCode + "/index.m3u8",
+                cameraIndexCode, rtspUrl, outputDir,
+                "/hls/" + streamKey + "/index.m3u8",
                 hlsProperties.getSegmentSeconds(), hlsProperties.getListSize());
         stream.start();
         return stream;

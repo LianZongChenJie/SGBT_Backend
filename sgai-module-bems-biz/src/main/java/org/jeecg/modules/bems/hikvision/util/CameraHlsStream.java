@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 单个摄像头 RTMP -> HLS 转码流任务
+ * 单个摄像头 RTSP -> HLS 转码流任务
  * <p>
  * 由 {@link HlsStreamManager} 统一管理：
  * 同一摄像头编码只存在一个转码任务（多路观看复用同一路HLS），
@@ -30,7 +30,8 @@ public class CameraHlsStream {
     private static final int MAX_RECONNECT_ATTEMPTS = 3;
 
     private final String cameraIndexCode;
-    private final String rtmpUrl;
+    /** 取流地址：海康返回的RTSP播放地址 */
+    private final String sourceUrl;
     private final File outputDir;
     private final String hlsRelativeUrl;
 
@@ -57,10 +58,10 @@ public class CameraHlsStream {
     private final int hlsSegmentSeconds;
     private final int hlsListSize;
 
-    public CameraHlsStream(String cameraIndexCode, String rtmpUrl, File outputDir,
+    public CameraHlsStream(String cameraIndexCode, String sourceUrl, File outputDir,
                            String hlsRelativeUrl, int hlsSegmentSeconds, int hlsListSize) {
         this.cameraIndexCode = cameraIndexCode;
-        this.rtmpUrl = rtmpUrl;
+        this.sourceUrl = sourceUrl;
         this.outputDir = outputDir;
         this.hlsRelativeUrl = hlsRelativeUrl;
         this.hlsSegmentSeconds = hlsSegmentSeconds;
@@ -71,8 +72,8 @@ public class CameraHlsStream {
         return cameraIndexCode;
     }
 
-    public String getRtmpUrl() {
-        return rtmpUrl;
+    public String getSourceUrl() {
+        return sourceUrl;
     }
 
     public File getOutputDir() {
@@ -162,15 +163,15 @@ public class CameraHlsStream {
         }
     }
 
-    /** 工作线程主循环：负责连接RTMP、转码写HLS切片，断线自动重连 */
+    /** 工作线程主循环：负责连接RTSP、转码写HLS切片，断线自动重连 */
     private void runTranscode() {
-        log.info("摄像头[{}] 开始拉流转码: {}", cameraIndexCode, rtmpUrl);
+        log.info("摄像头[{}] 开始拉流转码: {}", cameraIndexCode, sourceUrl);
         int reconnectAttempt = 0;
         try {
             while (!stopRequested.get() && !Thread.currentThread().isInterrupted()) {
                 reconnectAttempt++;
                 if (reconnectAttempt > MAX_RECONNECT_ATTEMPTS) {
-                    this.errorMessage = "RTMP拉流多次中断，已放弃重连";
+                    this.errorMessage = "RTSP拉流多次中断，已放弃重连";
                     log.error("摄像头[{}] {}", cameraIndexCode, errorMessage);
                     break;
                 }
@@ -200,13 +201,15 @@ public class CameraHlsStream {
     }
 
     /**
-     * 单次拉流转码：连接RTMP -> 转码 -> 写HLS切片，直到流中断或收到停止指令
+     * 单次拉流转码：连接RTSP -> 转码 -> 写HLS切片，直到流中断或收到停止指令
      */
     private void transcodeOnce() throws Exception {
         FFmpegFrameGrabber grabber = null;
         FFmpegFrameRecorder recorder = null;
         try {
-            grabber = new FFmpegFrameGrabber(rtmpUrl);
+            grabber = new FFmpegFrameGrabber(sourceUrl);
+            // 海康取流地址为RTSP，显式指定TCP传输，避免UDP丢包导致花屏、卡顿甚至断流
+            grabber.setOption("rtsp_transport", "tcp");
             grabber.setOption("stimeout", "5000000");
             grabber.setOption("rw_timeout", "5000000");
             grabber.setOption("buffer_size", "1024000");
@@ -216,7 +219,7 @@ public class CameraHlsStream {
             int height = grabber.getImageHeight();
             double frameRate = grabber.getFrameRate();
             if (width <= 0 || height <= 0 || Double.isNaN(frameRate)) {
-                throw new IllegalStateException("无法获取视频分辨率/帧率: " + rtmpUrl);
+                throw new IllegalStateException("无法获取视频分辨率/帧率: " + sourceUrl);
             }
             if (frameRate <= 0) {
                 frameRate = 25;
@@ -262,7 +265,7 @@ public class CameraHlsStream {
                 Frame frame = grabber.grab();
                 if (frame == null) {
                     // 拉流返回空，视为流中断，退出本次会话交由外层重连
-                    throw new IllegalStateException("RTMP流中断（grab返回空帧）");
+                    throw new IllegalStateException("RTSP流中断（grab返回空帧）");
                 }
                 if (frame.image != null || (frame.samples != null && withAudio)) {
                     recorder.record(frame);

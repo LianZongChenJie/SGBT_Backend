@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 摄像头HLS转码配置（对应 application.yml / Nacos 中 bems.hikvision.hls.* 配置项）
- * <p>统一管理RTMP拉流转码、无人观看自动停止、心跳超时等参数。</p>
+ * <p>统一管理RTSP拉流转码、无人观看自动停止、心跳超时等参数。</p>
  *
  * @author bems
  */

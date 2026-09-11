@@ -16,11 +16,11 @@ public class ReadDataJob {
 
     private final IPspaceWork pspaceWork;
 
-    @Scheduled(cron = "0 */15 * * * ?")
-    public void calculationMeteringPointData(){
-        log.info("获取数据开始执行开始执行");
-        int t = pspaceWork.refreshRealValueByNumericAcquisition();
-        log.info("refreshRealValueByNumericAcquisition 执行完成，更新 {} 条数据", t);
-    }
+//    @Scheduled(cron = "0 */15 * * * ?")
+//    public void calculationMeteringPointData(){
+//        log.info("获取数据开始执行开始执行");
+//        int t = pspaceWork.refreshRealValueByNumericAcquisition();
+//        log.info("refreshRealValueByNumericAcquisition 执行完成，更新 {} 条数据", t);
+//    }
 
 }
