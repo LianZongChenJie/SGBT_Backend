@@ -5,8 +5,10 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.modules.bems.hikvision.config.HlsProperties;
 import org.jeecg.modules.bems.hikvision.dto.CameraCoordinateGroupVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraListVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraPlayUrlVO;
@@ -15,17 +17,17 @@ import org.jeecg.modules.bems.hikvision.dto.RegionCameraTreeVO;
 import org.jeecg.modules.bems.hikvision.service.ICameraResourceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.jeecgframework.poi.excel.ExcelExportUtil;
 import org.jeecgframework.poi.excel.entity.ExportParams;
 import org.jeecgframework.poi.excel.entity.enmus.ExcelType;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 摄像头资源管理控制器
@@ -42,6 +44,11 @@ import java.util.Map;
 public class CameraResourceController {
 
     private final ICameraResourceService cameraResourceService;
+
+    /**
+     * HLS转码相关配置（含 publicBaseUrl：前端可访问的后端基础地址）
+     */
+    private final HlsProperties hlsProperties;
 
     /**
      * 触发全量同步海康摄像头数据
@@ -64,23 +71,74 @@ public class CameraResourceController {
 
     /**
      * 获取摄像头HLS播放地址
-     * <p>流程：前端传入1个或多个摄像头唯一编码 -> 调用海康OpenAPI直接获取HLS播放地址 ->
+     * <p>流程：前端传入1个摄像头唯一编码 -> 调用海康OpenAPI直接获取HLS播放地址 ->
      * 返回海康流媒体服务提供的完整播放地址（服务端不做本地拉流转码）。</p>
      *
-     * @param body 请求体，其中 cameraIndexCode 为摄像头唯一编码列表
-     * @return 播放地址列表（每项包含 cameraIndexCode 和 url）
+     * @param cameraIndexCode 摄像头唯一编码
+     * @return 播放地址（包含 cameraIndexCode 和 url）
      */
-    @PostMapping("/playUrls")
-    @ApiOperation(value = "获取摄像头HLS播放地址", notes = "传入摄像头唯一编码列表，返回海康平台直接提供的HLS播放地址")
-    public Result<List<CameraPlayUrlVO>> getPlayUrls(@RequestBody Map<String, List<String>> body) {
+    @GetMapping("/playUrls")
+    @ApiOperation(value = "获取摄像头HLS播放地址", notes = "传入单个摄像头唯一编码，返回海康平台直接提供的HLS播放地址")
+    public Result<CameraPlayUrlVO> getPlayUrls(String cameraIndexCode) {
         try {
-            List<String> cameraIndexCodes = body.get("cameraIndexCode");
-            List<CameraPlayUrlVO> playUrls = cameraResourceService.getPlayUrls(cameraIndexCodes);
-            return Result.ok(playUrls);
+            if (StringUtils.isBlank(cameraIndexCode)) {
+                return Result.error("摄像头唯一编码不能为空");
+            }
+            List<CameraPlayUrlVO> playUrls = cameraResourceService.getPlayUrls(Collections.singletonList(cameraIndexCode));
+            return Result.ok(playUrls.isEmpty() ? null : playUrls.get(0));
         } catch (Exception e) {
             log.error("获取摄像头播放地址失败", e);
             return Result.error("获取摄像头播放地址失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 获取摄像头本地HLS播放地址
+     * <p>流程：前端传入1个摄像头唯一编码 -> 海康SDK获取RTMP地址 -> JavaCV本地转码为HLS ->
+     * 返回 /hls/{编码}/index.m3u8 完整访问地址。同一摄像头正在拉流时直接复用已生成的HLS流，不做重复转码。</p>
+     *
+     * @param cameraIndexCode 摄像头唯一编码
+     * @param request         当前请求，用于拼接HLS访问地址
+     * @return 播放地址（包含 cameraIndexCode 和 url）
+     */
+    @GetMapping("/localPlayUrl")
+    @ApiOperation(value = "获取摄像头本地HLS播放地址", notes = "传入单个摄像头唯一编码，海康RTMP经本地转码为HLS后返回完整播放地址")
+    public Result<CameraPlayUrlVO> getLocalPlayUrl(String cameraIndexCode, HttpServletRequest request) {
+        try {
+            if (StringUtils.isBlank(cameraIndexCode)) {
+                return Result.error("摄像头唯一编码不能为空");
+            }
+            CameraPlayUrlVO vo = cameraResourceService.getLocalHlsPlayUrl(cameraIndexCode);
+            if (vo != null && vo.getUrl() != null && vo.getUrl().startsWith("/")) {
+                vo.setUrl(buildBaseUrl(request) + vo.getUrl());
+            }
+            return Result.ok(vo);
+        } catch (Exception e) {
+            log.error("获取摄像头本地HLS播放地址失败", e);
+            return Result.error("获取摄像头本地HLS播放地址失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 构建HLS播放地址的完整访问基础地址
+     * <p>优先使用配置 bems.hikvision.hls.public-base-url；未配置时取当前请求的Host
+     * （兼容网关转发场景，优先取 X-Forwarded-Host）。</p>
+     */
+    private String buildBaseUrl(HttpServletRequest request) {
+        if (StringUtils.isNotBlank(hlsProperties.getPublicBaseUrl())) {
+            return StringUtils.removeEnd(hlsProperties.getPublicBaseUrl(), "/");
+        }
+        String scheme = request.getScheme();
+        String host = request.getHeader("X-Forwarded-Host");
+        if (StringUtils.isBlank(host)) {
+            host = request.getHeader("Host");
+        }
+        if (StringUtils.isBlank(host)) {
+            host = request.getServerName()
+                    + (request.getServerPort() == 80 || request.getServerPort() == 443
+                    ? "" : ":" + request.getServerPort());
+        }
+        return scheme + "://" + host;
     }
 
     /**

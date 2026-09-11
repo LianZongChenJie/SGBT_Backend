@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jeecg.modules.bems.hikvision.config.HlsProperties;
 import org.jeecg.modules.bems.hikvision.dto.CameraCoordinateGroupVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraListVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraOnlineRequest;
@@ -24,7 +25,9 @@ import org.jeecg.modules.bems.hikvision.entity.RegionResource;
 import org.jeecg.modules.bems.hikvision.mapper.CameraResourceMapper;
 import org.jeecg.modules.bems.hikvision.mapper.RegionResourceMapper;
 import org.jeecg.modules.bems.hikvision.service.ICameraResourceService;
+import org.jeecg.modules.bems.hikvision.util.CameraHlsStream;
 import org.jeecg.modules.bems.hikvision.util.HikvisionUtil;
+import org.jeecg.modules.bems.hikvision.util.HlsStreamManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +92,16 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
      * 区域资源 Mapper（table_region_resource 表）
      */
     private final RegionResourceMapper regionResourceMapper;
+
+    /**
+     * HLS流管理器：负责RTMP拉流转码、流复用与无人观看自动停止
+     */
+    private final HlsStreamManager hlsStreamManager;
+
+    /**
+     * HLS转码相关配置
+     */
+    private final HlsProperties hlsProperties;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -347,6 +360,71 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
         request.setProtocol("hls");
         request.setTransmode(1);
         request.setStreamform("ps");
+        return request;
+    }
+
+    @Override
+    public CameraPlayUrlVO getLocalHlsPlayUrl(String cameraIndexCode) throws Exception {
+        if (StringUtils.isBlank(cameraIndexCode)) {
+            log.warn("获取本地HLS播放地址失败: cameraIndexCode为空");
+            return null;
+        }
+
+        log.info("开始获取摄像头[{}]的本地HLS播放地址", cameraIndexCode);
+
+        // 1. 请求海康SDK获取RTMP播放地址
+        PlayUrlRequest request = buildRtmpPlayUrlRequest(cameraIndexCode);
+        String requestBody = JSON.toJSONString(request);
+        log.info("请求海康摄像头RTMP播放地址, cameraIndexCode={}", cameraIndexCode);
+
+        String responseBody = hikvisionUtil.doPostJson(CAMERA_PREVIEW_URL_API, requestBody);
+        if (!hikvisionUtil.isSuccess(responseBody)) {
+            log.error("获取摄像头[{}]RTMP地址失败, 海康响应: {}", cameraIndexCode, responseBody);
+            return null;
+        }
+
+        JSONObject dataJson = hikvisionUtil.getResponseData(responseBody);
+        if (dataJson == null || StringUtils.isBlank(dataJson.getString("url"))) {
+            log.warn("摄像头[{}] 海康未返回RTMP地址", cameraIndexCode);
+            return null;
+        }
+        String rtmpUrl = dataJson.getString("url");
+        log.info("摄像头[{}] RTMP地址获取成功", cameraIndexCode);
+
+        // 2. 通过HLS流管理器获取本地HLS流：同一摄像头正在拉流时直接复用，不重复转码
+        CameraHlsStream stream = hlsStreamManager.getOrCreate(cameraIndexCode, rtmpUrl);
+        if (stream == null) {
+            log.error("摄像头[{}] HLS转码任务创建失败", cameraIndexCode);
+            return null;
+        }
+
+        // 3. 等待HLS流就绪（首个切片已生成），超时仍返回地址由前端自行重试
+        boolean ready = stream.awaitReady(hlsProperties.getReadyWaitSeconds());
+        if (!ready) {
+            if (!stream.isRunning()) {
+                log.error("摄像头[{}] HLS转码启动失败: {}", cameraIndexCode, stream.getErrorMessage());
+                hlsStreamManager.removeStream(cameraIndexCode);
+                return null;
+            }
+            log.warn("摄像头[{}] HLS流未在{}s内就绪, 仍返回地址由前端重试",
+                    cameraIndexCode, hlsProperties.getReadyWaitSeconds());
+        }
+
+        // 4. 返回本地HLS相对播放地址（由Controller拼装完整访问地址）
+        log.info("摄像头[{}] 本地HLS播放地址: {}", cameraIndexCode, stream.getHlsRelativeUrl());
+        return new CameraPlayUrlVO(cameraIndexCode, stream.getHlsRelativeUrl());
+    }
+
+    /**
+     * 构建获取RTMP播放地址的固定请求参数（协议为rtmp，由JavaCV本地拉流转码为HLS）
+     */
+    private PlayUrlRequest buildRtmpPlayUrlRequest(String cameraIndexCode) {
+        PlayUrlRequest request = new PlayUrlRequest();
+        request.setCameraIndexCode(cameraIndexCode);
+        request.setStreamType(0);
+        request.setProtocol("rtmp");
+        request.setTransmode(1);
+        request.setExpand("transcode=0");
         return request;
     }
 
@@ -696,15 +774,16 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
                         Collectors.mapping(this::cameraToVO, Collectors.toList())));
 
         // 3. 递归构建区域树
-        Set<String> childIndexCodes = allRegions.stream()
-                .map(RegionResource::getParentIndexCode)
-                .filter(StringUtils::isNotBlank)
+        // 根节点判断：parentIndexCode 为空，或 parentIndexCode 不在任何区域的 indexCode 集合中
+        // （兼容海康根节点标识 root000000、-1、空，避免写死导致树丢失）
+        Set<String> allIndexCodes = allRegions.stream()
+                .map(RegionResource::getIndexCode)
                 .collect(Collectors.toSet());
 
         List<RegionCameraTreeVO> result = new ArrayList<>();
         for (RegionResource region : allRegions) {
             boolean isRoot = StringUtils.isBlank(region.getParentIndexCode())
-                    || !childIndexCodes.contains(region.getParentIndexCode());
+                    || !allIndexCodes.contains(region.getParentIndexCode());
             if (isRoot) {
                 result.add(convertRegionTree(region, allRegions, regionCameraMap));
             }

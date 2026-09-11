@@ -37,6 +37,16 @@ public interface ICameraResourceService extends IService<CameraResource> {
     List<CameraPlayUrlVO> getPlayUrls(List<String> cameraIndexCodes);
 
     /**
+     * 根据单个摄像头唯一编码，获取本地HLS播放地址
+     * <p>流程：海康SDK获取RTMP地址 -> JavaCV本地转码为HLS -> 返回 /hls/{编码}/index.m3u8 相对地址。
+     * 同一摄像头正在拉流时直接复用已生成的HLS流，不做重复转码。</p>
+     *
+     * @param cameraIndexCode 摄像头唯一编码
+     * @return 本地HLS播放地址（含摄像头编码与相对地址），失败返回null
+     */
+    CameraPlayUrlVO getLocalHlsPlayUrl(String cameraIndexCode) throws Exception;
+
+    /**
      * 从海康平台查询监控点在线状态并更新到数据库
      * <p>逐页拉取海康在线状态数据，根据 indexCode 匹配更新 table_camera_resource 的 online 字段。</p>
      *

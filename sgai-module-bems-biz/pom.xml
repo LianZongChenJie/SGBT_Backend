@@ -51,7 +51,18 @@
             <artifactId>pSpace-javaSDK</artifactId>
             <version>2.2.1</version>
         </dependency>
-
+        <!--JavaCV: 拉取RTSP流并转码为本地HLS切片（复用同一路拉流、无人观看自动停止）-->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv</artifactId>
+            <version>1.5.11</version>
+        </dependency>
+        <!--ffmpeg全平台原生库（按需裁剪：仅保留部署平台可减小体积，如ffmpeg:7.1-1.5.11:windows-x86_64）-->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>ffmpeg-platform</artifactId>
+            <version>7.1-1.5.11</version>
+        </dependency>
         <dependency>
             <groupId>org.jeecgframework.boot</groupId>
             <artifactId>sgai-system-cloud-api</artifactId>
