@@ -65,6 +65,13 @@
 	<logger name="java.sql.Connection" level="DEBUG" />
 	<logger name="java.sql.Statement" level="DEBUG" />
 	<logger name="java.sql.PreparedStatement" level="DEBUG" />
+	<!--
+		jeecg框架已知问题(官方Issue #7977/#4799)：非system微服务会周期性打印
+		"Customize redis listener handle [ socketHandler ], does not exist！"
+		Redis广播消息按Bean名路由回调，socketHandler(WebSocket消息推送)只存在于system服务，
+		本服务没有该Bean属可预期的正常情况，不影响功能，仅调高级别屏蔽该刷屏告警。
+	-->
+	<logger name="org.jeecg.common.util.SpringContextHolder" level="ERROR" />
 
 	<!-- 日志输出级别 -->
 	<root level="INFO">
