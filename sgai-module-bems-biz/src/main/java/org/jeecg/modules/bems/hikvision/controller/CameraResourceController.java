@@ -184,24 +184,62 @@ public class CameraResourceController {
 
     /**
      * 构建HLS播放地址的完整访问基础地址
-     * <p>优先使用配置 bems.hikvision.hls.public-base-url；未配置时取当前请求的Host
-     * （兼容网关转发场景，优先取 X-Forwarded-Host）。</p>
+     * <p>微服务经网关访问时，请求Host只包含网关地址，不含服务路由前缀（如 /sgai-bems），
+     * 必须补上前缀，否则前端按返回地址请求 /hls/** 会404。取值优先级：</p>
+     * <ol>
+     *   <li>配置 bems.hikvision.hls.public-base-url（完整地址，直接使用）；</li>
+     *   <li>请求头 X-Forwarded-Prefix（网关透传的服务路由前缀）；</li>
+     *   <li>配置 bems.hikvision.hls.url-prefix（服务路由前缀）；</li>
+     * </ol>
+     *
+     * @param request 当前请求
+     * @return 基础地址，如 http://47.95.156.86:59999/sgai-bems
      */
     private String buildBaseUrl(HttpServletRequest request) {
+        // 1. 显式配置的完整基础地址优先
         if (StringUtils.isNotBlank(hlsProperties.getPublicBaseUrl())) {
-            return StringUtils.removeEnd(hlsProperties.getPublicBaseUrl(), "/");
+            return StringUtils.removeEnd(hlsProperties.getPublicBaseUrl().trim(), "/");
         }
-        String scheme = request.getScheme();
-        String host = request.getHeader("X-Forwarded-Host");
+
+        // 2. 协议：网关终止TLS时请求协议为http，以 X-Forwarded-Proto 为准
+        String scheme = firstValue(request.getHeader("X-Forwarded-Proto"));
+        if (StringUtils.isBlank(scheme)) {
+            scheme = request.getScheme();
+        }
+
+        // 3. 主机：网关转发场景优先取 X-Forwarded-Host，避免取到内网服务地址
+        String host = firstValue(request.getHeader("X-Forwarded-Host"));
         if (StringUtils.isBlank(host)) {
-            host = request.getHeader("Host");
+            host = firstValue(request.getHeader("Host"));
         }
         if (StringUtils.isBlank(host)) {
             host = request.getServerName()
                     + (request.getServerPort() == 80 || request.getServerPort() == 443
                     ? "" : ":" + request.getServerPort());
         }
-        return scheme + "://" + host;
+
+        // 4. 服务路由前缀：网关未透传时取配置值
+        String prefix = firstValue(request.getHeader("X-Forwarded-Prefix"));
+        if (StringUtils.isBlank(prefix)) {
+            prefix = hlsProperties.getUrlPrefix();
+        }
+
+        String baseUrl = scheme + "://" + host;
+        if (StringUtils.isNotBlank(prefix)) {
+            baseUrl += prefix.startsWith("/") ? prefix : "/" + prefix;
+        }
+        return StringUtils.removeEnd(baseUrl, "/");
+    }
+
+    /**
+     * 取请求头首值：网关透传的 X-Forwarded-* 可能为逗号分隔的多值（如 "a, b"），只取第一段
+     */
+    private String firstValue(String headerValue) {
+        if (StringUtils.isBlank(headerValue)) {
+            return null;
+        }
+        int comma = headerValue.indexOf(',');
+        return (comma > -1 ? headerValue.substring(0, comma) : headerValue).trim();
     }
 
     /**

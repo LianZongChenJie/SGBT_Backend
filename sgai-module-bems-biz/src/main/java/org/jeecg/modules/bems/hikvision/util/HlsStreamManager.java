@@ -113,7 +113,8 @@ public class HlsStreamManager {
         CameraHlsStream stream = new CameraHlsStream(
                 cameraIndexCode, rtspUrl, outputDir,
                 "/hls/" + streamKey + "/index.m3u8",
-                hlsProperties.getSegmentSeconds(), hlsProperties.getListSize());
+                hlsProperties.getSegmentSeconds(), hlsProperties.getListSize(),
+                hlsProperties.getFrameRate());
         stream.start();
         return stream;
     }

@@ -1,6 +1,8 @@
 package org.jeecg.modules.bems.hikvision.util;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
@@ -29,10 +31,14 @@ public class CameraHlsStream {
     /** 断线后最大重连次数 */
     private static final int MAX_RECONNECT_ATTEMPTS = 3;
 
+    @Getter
     private final String cameraIndexCode;
     /** 取流地址：海康返回的RTSP播放地址 */
+    @Getter
     private final String sourceUrl;
+    @Getter
     private final File outputDir;
+    @Getter
     private final String hlsRelativeUrl;
 
     /** 观看人数（引用计数）：进入观看+1，主动释放-1，下限为0 */
@@ -50,6 +56,7 @@ public class CameraHlsStream {
     /** 拉流转码工作线程 */
     private volatile Thread workerThread;
     /** 启动失败/运行错误信息 */
+    @Getter
     private volatile String errorMessage;
 
     /** 转码会话序号：断线重连后HLS切片编号递增，避免与旧切片编号冲突 */
@@ -57,35 +64,19 @@ public class CameraHlsStream {
 
     private final int hlsSegmentSeconds;
     private final int hlsListSize;
+    /** 转码帧率覆盖（0=自动识别摄像头帧率） */
+    private final int frameRateOverride;
 
     public CameraHlsStream(String cameraIndexCode, String sourceUrl, File outputDir,
-                           String hlsRelativeUrl, int hlsSegmentSeconds, int hlsListSize) {
+                           String hlsRelativeUrl, int hlsSegmentSeconds, int hlsListSize,
+                           int frameRateOverride) {
         this.cameraIndexCode = cameraIndexCode;
         this.sourceUrl = sourceUrl;
         this.outputDir = outputDir;
         this.hlsRelativeUrl = hlsRelativeUrl;
         this.hlsSegmentSeconds = hlsSegmentSeconds;
         this.hlsListSize = hlsListSize;
-    }
-
-    public String getCameraIndexCode() {
-        return cameraIndexCode;
-    }
-
-    public String getSourceUrl() {
-        return sourceUrl;
-    }
-
-    public File getOutputDir() {
-        return outputDir;
-    }
-
-    public String getHlsRelativeUrl() {
-        return hlsRelativeUrl;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
+        this.frameRateOverride = frameRateOverride;
     }
 
     /** 进入观看（引用计数+1） */
@@ -221,7 +212,11 @@ public class CameraHlsStream {
             if (width <= 0 || height <= 0 || Double.isNaN(frameRate)) {
                 throw new IllegalStateException("无法获取视频分辨率/帧率: " + sourceUrl);
             }
-            if (frameRate <= 0) {
+            // 帧率决定GOP长度与切片时长的换算，识别不准会导致GOP错位（切片起点不是IDR而花屏）
+            if (frameRateOverride > 0) {
+                log.info("摄像头[{}] 帧率使用配置值{}覆盖识别值{}", cameraIndexCode, frameRateOverride, frameRate);
+                frameRate = frameRateOverride;
+            } else if (frameRate <= 0) {
                 frameRate = 25;
             }
 
@@ -235,11 +230,33 @@ public class CameraHlsStream {
             recorder.setVideoCodec(avcodec.AV_CODEC_ID_H264);
             recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
             recorder.setFrameRate(frameRate);
-            recorder.setGopSize((int) Math.round(frameRate * 2));
+            // GOP长度 = 切片时长：保证每个切片正好一个GOP，切片起点必为IDR帧（否则播放器缺参考帧会花屏）
+            int gopSize = Math.max(1, (int) Math.round(frameRate * hlsSegmentSeconds));
+            recorder.setGopSize(gopSize);
             recorder.setVideoBitrate(1024 * 1024);
+            recorder.setVideoOption("g", String.valueOf(gopSize));
+            recorder.setVideoOption("keyint_min", String.valueOf(gopSize));
+            // 关闭场景切换自动插I帧：避免GOP长度被打乱，导致切片起点不是IDR
+            recorder.setVideoOption("sc_threshold", "0");
+            // 强制IDR（闭合GOP），保证每个切片可独立解码
+            recorder.setVideoOption("forced-idr", "1");
+            // 直播低延迟编码：禁用B帧（B帧会引入DTS/PTS重排，逐帧写入时时间戳错乱会导致花屏）
+            recorder.setVideoOption("preset", "veryfast");
+            recorder.setVideoOption("tune", "zerolatency");
+            recorder.setVideoOption("bframes", "0");
+            // 打印实际使用的H.264编码器：preset/tune/bframes/sc_threshold/forced-idr均为libx264私有参数，
+            // 若实际编码器不是libx264则会被静默忽略（GOP/关键帧策略失效，切片起点可能不是IDR导致花屏）
+            AVCodec h264Encoder = avcodec.avcodec_find_encoder(avcodec.AV_CODEC_ID_H264);
+            String encoderName = h264Encoder == null ? "未找到" : h264Encoder.name().getString();
+            log.info("摄像头[{}] H.264编码器: {} (GOP={}帧)", cameraIndexCode, encoderName, gopSize);
+            if (!"libx264".equals(encoderName)) {
+                log.warn("摄像头[{}] H.264编码器不是libx264, x264关键帧参数不会生效, 切片可能无法按IDR切分",
+                        cameraIndexCode);
+            }
             recorder.setOption("hls_time", String.valueOf(hlsSegmentSeconds));
             recorder.setOption("hls_list_size", String.valueOf(hlsListSize));
-            recorder.setOption("hls_flags", "delete_segments");
+            // temp_file：切片与m3u8先写.tmp再原子重命名，避免前端读到写了一半的切片/播放列表造成花屏
+            recorder.setOption("hls_flags", "delete_segments+temp_file+independent_segments");
             recorder.setOption("hls_segment_filename",
                     new File(outputDir, "segment-%d.ts").getAbsolutePath());
             // 每次会话的切片编号递增，断线重连后不覆盖旧切片，避免播放器解析错乱
@@ -255,12 +272,15 @@ public class CameraHlsStream {
                 recorder.setSampleRate(sampleRate);
                 recorder.setAudioBitrate(64 * 1024);
             }
-            boolean withAudio = audioChannels > 0;
+            boolean withAudio = audioChannels > 0 && sampleRate > 0;
 
             recorder.start();
-            log.info("摄像头[{}] 转码器启动, 分辨率{}x{}, 帧率{}", cameraIndexCode, width, height, frameRate);
+            log.info("摄像头[{}] 转码器启动, 源编码={}, 分辨率{}x{}, 帧率{}",
+                    cameraIndexCode, grabber.getVideoCodecName(), width, height, frameRate);
 
             boolean firstFrameWritten = false;
+            boolean readySignaled = false;
+            long framesWritten = 0;
             while (!stopRequested.get() && !Thread.currentThread().isInterrupted()) {
                 Frame frame = grabber.grab();
                 if (frame == null) {
@@ -269,8 +289,14 @@ public class CameraHlsStream {
                 }
                 if (frame.image != null || (frame.samples != null && withAudio)) {
                     recorder.record(frame);
+                    framesWritten++;
                     if (!firstFrameWritten) {
                         firstFrameWritten = true;
+                        log.info("摄像头[{}] 首帧已写入，等待首个HLS切片完成...", cameraIndexCode);
+                    }
+                    // 写满一个GOP后首个切片即已完整落盘（temp_file保证原子重命名），此时再放行前端播放
+                    if (!readySignaled && framesWritten > gopSize) {
+                        readySignaled = true;
                         readyLatch.countDown();
                         log.info("摄像头[{}] HLS流已就绪: {}", cameraIndexCode, hlsRelativeUrl);
                     }

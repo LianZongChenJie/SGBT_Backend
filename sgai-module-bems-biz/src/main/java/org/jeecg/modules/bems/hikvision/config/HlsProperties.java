@@ -24,6 +24,14 @@ public class HlsProperties {
     /** m3u8列表保留的切片数量 */
     private int listSize = 5;
 
+    /**
+     * 转码帧率覆盖（帧/秒），0 表示自动识别。
+     * <p>RTSP的SDP里帧率常缺失或不准（如变帧率摄像头报25实际20），
+     * 会导致GOP长度与切片时长换算错位、切片起点不再是IDR而花屏；
+     * 排查时可通过日志中的“帧率”字段确认，必要时用该配置强制指定。</p>
+     */
+    private int frameRate = 0;
+
     /** 无人观看后延迟多少秒自动停止拉流 */
     private int idleStopSeconds = 60;
 
@@ -33,6 +41,13 @@ public class HlsProperties {
     /** 获取播放地址时等待HLS流就绪的最长时间（秒） */
     private int readyWaitSeconds = 15;
 
-    /** 可选：前端可访问的后端基础地址，不配置则取请求Host */
+    /** 可选：前端可访问的后端基础地址，配置后优先级最高（如 http://47.95.156.86:59999/sgai-bems） */
     private String publicBaseUrl = "";
+
+    /**
+     * HLS访问地址的服务路由前缀（微服务经网关访问时必配，如 /sgai-bems）
+     * <p>网关转发时请求Host只含网关地址，不含服务前缀，缺少该前缀会导致 /hls/** 访问不到。
+     * 若网关已透传 X-Forwarded-Prefix 请求头，则优先使用请求头值。</p>
+     */
+    private String urlPrefix = "";
 }
