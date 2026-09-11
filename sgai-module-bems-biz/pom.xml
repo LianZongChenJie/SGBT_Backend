@@ -33,7 +33,18 @@
             <groupId>org.jeecgframework.boot</groupId>
             <artifactId>jeecg-boot-starter-lock</artifactId>
         </dependency>
-
+        <!--引入海康openapi-->
+        <dependency>
+            <groupId>com.hikvision.ga</groupId>
+            <artifactId>artemis-http-client-demo</artifactId>
+            <version>1.1.15.RELEASE</version>
+        </dependency>
+        <!--MQTT客户端-->
+        <dependency>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+            <version>1.2.5</version>
+        </dependency>
         <!-- 引入 pSpace SDK -->
         <dependency>
             <groupId>com.sunwayland.pspace</groupId>
