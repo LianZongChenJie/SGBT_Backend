@@ -48,6 +48,15 @@ public interface ICameraResourceService extends IService<CameraResource> {
     CameraPlayUrlVO getLocalHlsPlayUrl(String cameraIndexCode) throws Exception;
 
     /**
+     * 前端播放心跳续期
+     * <p>播放过程中前端周期性调用，刷新该路HLS流的最后活跃时间，
+     * 避免被"无人观看空闲"或"心跳超时"规则判定为异常关闭而自动停止拉流。</p>
+     *
+     * @param streamKey 流标识：实时播放传摄像头唯一编码 cameraIndexCode；回放播放传返回地址中的流标识
+     */
+    void heartbeat(String streamKey);
+
+    /**
      * 根据摄像头唯一编码与回放时间段，直接从海康平台获取HLS回放地址
      * <p>调用海康OpenAPI（playbackURLs，protocol=hls）获取回放地址，由海康流媒体服务直接输出HLS，
      * 服务端不做本地拉流转码。</p>

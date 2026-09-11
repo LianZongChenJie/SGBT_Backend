@@ -438,6 +438,14 @@ public class CameraResourceServiceImpl extends ServiceImpl<CameraResourceMapper,
         return new CameraPlayUrlVO(cameraIndexCode, stream.getHlsRelativeUrl());
     }
 
+    @Override
+    public void heartbeat(String streamKey) {
+        if (StringUtils.isBlank(streamKey)) {
+            return;
+        }
+        hlsStreamManager.heartbeat(streamKey);
+    }
+
     /**
      * 构建获取RTSP播放地址的固定请求参数（协议为rtsp，由JavaCV本地拉流转码为HLS）
      */

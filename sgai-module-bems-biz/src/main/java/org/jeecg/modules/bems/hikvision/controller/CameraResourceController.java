@@ -121,6 +121,29 @@ public class CameraResourceController {
     }
 
     /**
+     * 前端播放心跳续期
+     * <p>前端播放过程中周期性调用（建议间隔小于心跳超时时间的一半），刷新该路HLS流的最后活跃时间，
+     * 避免被"无人观看空闲"或"心跳超时"规则判定为页面异常关闭而自动停止拉流。</p>
+     *
+     * @param streamKey 流标识：实时播放传摄像头唯一编码 cameraIndexCode；回放播放传返回地址中的流标识
+     * @return 操作结果
+     */
+    @PostMapping("/heartbeat")
+    @ApiOperation(value = "播放心跳续期", notes = "前端播放过程中周期性调用，刷新HLS流最后活跃时间，避免被空闲/心跳超时规则自动停止拉流")
+    public Result<String> heartbeat(String streamKey) {
+        try {
+            if (StringUtils.isBlank(streamKey)) {
+                return Result.error("流标识不能为空");
+            }
+            cameraResourceService.heartbeat(streamKey);
+            return Result.ok("ok");
+        } catch (Exception e) {
+            log.error("播放心跳续期失败, streamKey={}", streamKey, e);
+            return Result.error("播放心跳续期失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 获取摄像头海康HLS回放地址
      * <p>流程：前端传入1个摄像头唯一编码与回放时间段 -> 调用海康OpenAPI（playbackURLs，protocol=hls）
      * 直接获取回放地址 -> 返回海康流媒体服务提供的完整回放地址（服务端不做本地拉流转码）。</p>

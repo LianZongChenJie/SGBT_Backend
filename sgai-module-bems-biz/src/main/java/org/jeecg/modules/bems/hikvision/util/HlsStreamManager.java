@@ -136,9 +136,10 @@ public class HlsStreamManager {
 
     /**
      * 前端心跳续期（播放过程中周期调用）
+     * <p>入参为流标识：实时流为摄像头唯一编码 cameraIndexCode，回放流为 streamKey。</p>
      */
-    public void heartbeat(String cameraIndexCode) {
-        CameraHlsStream stream = streams.get(cameraIndexCode);
+    public void heartbeat(String streamKey) {
+        CameraHlsStream stream = streams.get(streamKey);
         if (stream != null) {
             stream.heartbeat();
         }
