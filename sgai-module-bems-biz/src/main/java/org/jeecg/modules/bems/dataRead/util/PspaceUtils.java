@@ -9,10 +9,10 @@ import javax.annotation.PostConstruct;
 @Slf4j
 @Component
 public class PspaceUtils {
-    @Value("${pspace.host:47.95.156.86}")
+    @Value("${pspace.host:192.168.3.63}")
     private String host;
 
-    @Value("${pspace.port:55672}")
+    @Value("${pspace.port:8889}")
     private int port;
 
     @Value("${pspace.username:admin}")
@@ -21,7 +21,7 @@ public class PspaceUtils {
     @Value("${pspace.password:admin888}")
     private String password;
 
-    @Value("${pspace.mock:true}")
+    @Value("${pspace.mock:false}")
     private boolean mock;
 
 
@@ -45,7 +45,7 @@ public class PspaceUtils {
                 password);
         try {
             client.connect();
-            log.info("录取数据链接成功！");
+            log.info("录取数据链接成功！地址={}",host);
         } catch (Exception e) {
             client = null;
             throw e;
