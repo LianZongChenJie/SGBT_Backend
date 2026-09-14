@@ -2,6 +2,8 @@ package org.jeecg.modules.bems.hikvision.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacv.FFmpegLogCallback;
 import org.jeecg.modules.bems.hikvision.config.HlsProperties;
 import org.springframework.stereotype.Component;
 
@@ -34,6 +36,19 @@ import java.util.concurrent.TimeUnit;
 @Component
 @RequiredArgsConstructor
 public class HlsStreamManager {
+
+    static {
+        // FFmpeg原生日志默认INFO级别：swscaler像素格式提示、hls muxer写切片("Opening ... for writing")
+        // 每路拉流每秒刷十几行，会淹没业务日志。这里接管日志输出并只保留ERROR及以上。
+        // 排查转码问题时把级别改成 avutil.AV_LOG_INFO / AV_LOG_DEBUG 即可恢复完整日志。
+        try {
+            FFmpegLogCallback.setLevel(avutil.AV_LOG_ERROR);
+            FFmpegLogCallback.set();
+        } catch (Throwable t) {
+            // 原生库缺失时（如本地Windows开发，pom只引了linux-x86_64原生库）不能阻断启动
+            log.warn("FFmpeg日志级别设置失败，原生日志将直接输出到控制台: {}", t.getMessage());
+        }
+    }
 
     /** 摄像头唯一编码 -> HLS流任务 */
     private final Map<String, CameraHlsStream> streams = new ConcurrentHashMap<>();

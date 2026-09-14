@@ -3,7 +3,6 @@ package org.jeecg.modules.bems.hikvision.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -17,9 +16,12 @@ import org.jeecg.modules.bems.hikvision.dto.CameraResourcePageDto;
 import org.jeecg.modules.bems.hikvision.dto.RegionCameraTreeVO;
 import org.jeecg.modules.bems.hikvision.service.ICameraResourceService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.HandlerMapping;
 import org.jeecgframework.poi.excel.ExcelExportUtil;
 import org.jeecgframework.poi.excel.entity.ExportParams;
 import org.jeecgframework.poi.excel.entity.enmus.ExcelType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -36,10 +38,12 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/bems/hikvision/camera")
 @Api(tags = "海康摄像头资源管理")
 public class CameraResourceController {
+
+    /** 本控制器的映射路径：反代场景下用于从请求URI还原代理前缀（HandlerMapping取不到时兜底） */
+    private static final String CONTROLLER_MAPPING = "/bems/hikvision/camera";
 
     private final ICameraResourceService cameraResourceService;
 
@@ -48,6 +52,22 @@ public class CameraResourceController {
      */
     private final HlsProperties hlsProperties;
 
+    /** 当前应用名，取自 spring.application.name（如 sgai-bems-baotou） */
+    private final String appName;
+
+    /**
+     * 构造器注入：appName 为普通字符串，必须显式写构造器并把 @Value 标在参数上。
+     * Lombok 的 @RequiredArgsConstructor 默认不会把 @Value 复制到构造器参数
+     * （lombok.copyableAnnotations 默认为空），那样 Spring 会按类型找不到 String bean 而启动失败。
+     */
+    @Autowired
+    public CameraResourceController(ICameraResourceService cameraResourceService,
+                                    HlsProperties hlsProperties,
+                                    @Value("${spring.application.name:}") String appName) {
+        this.cameraResourceService = cameraResourceService;
+        this.hlsProperties = hlsProperties;
+        this.appName = appName;
+    }
     /**
      * 触发全量同步海康摄像头数据
      * <p>请求无需参数，内部使用固定参数逐页拉取海康全部摄像头。
@@ -108,7 +128,9 @@ public class CameraResourceController {
             }
             CameraPlayUrlVO vo = cameraResourceService.getLocalHlsPlayUrl(cameraIndexCode);
             if (vo != null && vo.getUrl() != null && vo.getUrl().startsWith("/")) {
-                vo.setUrl(buildBaseUrl(request) + vo.getUrl());
+                String baseUrl = buildBaseUrl(request);
+                log.info("摄像头[{}] 本地HLS播放地址基础地址: {}", cameraIndexCode, baseUrl);
+                vo.setUrl(baseUrl +"/"+appName+ vo.getUrl());
             }
             return Result.ok(vo);
         } catch (Exception e) {
@@ -191,7 +213,9 @@ public class CameraResourceController {
             }
             CameraPlaybackUrlVO vo = cameraResourceService.getLocalHlsPlaybackUrl(cameraIndexCode, beginTime, endTime);
             if (vo != null && vo.getUrl() != null && vo.getUrl().startsWith("/")) {
-                vo.setUrl(buildBaseUrl(request) + vo.getUrl());
+                String baseUrl = buildBaseUrl(request);
+                log.info("摄像头[{}] 本地HLS回放地址基础地址: {}", cameraIndexCode, baseUrl);
+                vo.setUrl(baseUrl + vo.getUrl());
             }
             return Result.ok(vo);
         } catch (IllegalArgumentException e) {
@@ -204,16 +228,17 @@ public class CameraResourceController {
 
     /**
      * 构建HLS播放地址的完整访问基础地址
-     * <p>微服务经网关访问时，请求Host只包含网关地址，不含服务路由前缀（如 /sgai-bems），
-     * 必须补上前缀，否则前端按返回地址请求 /hls/** 会404。取值优先级：</p>
+     * <p>微服务经nginx/网关代理访问时，请求Host只包含代理地址、URI里带着代理前缀（如 /jeecgboot），
+     * 必须还原成前端浏览器能访问的地址，否则前端按返回地址请求 /hls/** 会404。取值优先级：</p>
      * <ol>
-     *   <li>配置 bems.hikvision.hls.public-base-url（完整地址，直接使用）；</li>
-     *   <li>请求头 X-Forwarded-Prefix（网关透传的服务路由前缀）；</li>
+     *   <li>配置 bems.hikvision.hls.public-base-url（完整地址，含对外端口，直接使用）；</li>
+     *   <li>请求头 X-Forwarded-Host / X-Forwarded-Port / X-Forwarded-Prefix（代理透传的外部主机、端口、前缀）；</li>
+     *   <li>从当前请求URI还原的代理前缀（如 /jeecgboot，无需任何配置）；</li>
      *   <li>配置 bems.hikvision.hls.url-prefix（服务路由前缀）；</li>
      * </ol>
      *
      * @param request 当前请求
-     * @return 基础地址，如 http://47.95.156.86:59999/sgai-bems
+     * @return 基础地址，如 http://47.95.156.86:60080/jeecgboot
      */
     private String buildBaseUrl(HttpServletRequest request) {
         // 1. 显式配置的完整基础地址优先
@@ -221,13 +246,13 @@ public class CameraResourceController {
             return StringUtils.removeEnd(hlsProperties.getPublicBaseUrl().trim(), "/");
         }
 
-        // 2. 协议：网关终止TLS时请求协议为http，以 X-Forwarded-Proto 为准
+        // 2. 协议：代理终止TLS时请求协议为http，以 X-Forwarded-Proto 为准
         String scheme = firstValue(request.getHeader("X-Forwarded-Proto"));
         if (StringUtils.isBlank(scheme)) {
             scheme = request.getScheme();
         }
 
-        // 3. 主机：网关转发场景优先取 X-Forwarded-Host，避免取到内网服务地址
+        // 3. 主机：代理转发场景优先取 X-Forwarded-Host，避免取到内网服务地址
         String host = firstValue(request.getHeader("X-Forwarded-Host"));
         if (StringUtils.isBlank(host)) {
             host = firstValue(request.getHeader("Host"));
@@ -237,9 +262,15 @@ public class CameraResourceController {
                     + (request.getServerPort() == 80 || request.getServerPort() == 443
                     ? "" : ":" + request.getServerPort());
         }
+        // 端口：nginx 默认 "proxy_set_header Host $host" 只透传主机名、不带端口，
+        // 导致拼出的播放地址丢失对外端口，这里用 X-Forwarded-Port 补齐
+        host = appendPortIfMissing(host, firstValue(request.getHeader("X-Forwarded-Port")), scheme);
 
-        // 4. 服务路由前缀：网关未透传时取配置值
+        // 4. 代理前缀：代理未透传请求头时，直接由当前请求URI还原
         String prefix = firstValue(request.getHeader("X-Forwarded-Prefix"));
+        if (StringUtils.isBlank(prefix)) {
+            prefix = resolveProxyPrefix(request);
+        }
         if (StringUtils.isBlank(prefix)) {
             prefix = hlsProperties.getUrlPrefix();
         }
@@ -249,6 +280,57 @@ public class CameraResourceController {
             baseUrl += prefix.startsWith("/") ? prefix : "/" + prefix;
         }
         return StringUtils.removeEnd(baseUrl, "/");
+    }
+
+    /**
+     * 主机地址缺少端口时，用代理透传的 X-Forwarded-Port 补齐
+     * <p>nginx 常见的 "proxy_set_header Host $host" 只透传主机名（$host 不含端口），
+     * 后端据此拼出的播放地址会丢失对外端口，前端按该地址请求会走到默认 80 端口而取不到流。
+     * 由代理显式透传 X-Forwarded-Port 后可还原；80/443 默认端口不拼接，保持地址简洁。</p>
+     *
+     * @param host  主机（可能已带端口）
+     * @param port  X-Forwarded-Port 透传的端口，可为空
+     * @param scheme 协议，用于判断是否为默认端口
+     * @return 补齐端口后的主机
+     */
+    private String appendPortIfMissing(String host, String port, String scheme) {
+        if (StringUtils.isBlank(host) || StringUtils.isBlank(port) || host.indexOf(':') > -1) {
+            return host;
+        }
+        port = port.trim();
+        if (!StringUtils.isNumeric(port)) {
+            return host;
+        }
+        boolean defaultPort = ("80".equals(port) && "http".equalsIgnoreCase(scheme))
+                || ("443".equals(port) && "https".equalsIgnoreCase(scheme));
+        return defaultPort ? host : host + ":" + port;
+    }
+
+    /**
+     * 从当前请求URI还原代理前缀（nginx/网关对外暴露的路径前缀）
+     * <p>例如前端经nginx以 /jeecgboot/bems/hikvision/camera/localPlayUrl 访问本接口，
+     * 请求URI去掉接口映射路径后即得代理前缀 /jeecgboot。由于 /hls/** 与接口位于同一代理前缀下，
+     * 拼出的播放地址必然与当前接口走同一条代理规则，不需要为每种代理配置单独改代码或加配置。</p>
+     *
+     * @param request 当前请求
+     * @return 代理前缀（直接以根路径访问时返回空串）；URI中匹配不到接口路径时返回null
+     */
+    private String resolveProxyPrefix(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (StringUtils.isBlank(uri)) {
+            return null;
+        }
+        Object bestMatch = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+        String mapping = bestMatch == null ? CONTROLLER_MAPPING : bestMatch.toString();
+        // 通配/占位符路径不能直接做字符串匹配，退回本控制器映射路径
+        if (mapping.indexOf('*') > -1 || mapping.indexOf('{') > -1) {
+            mapping = CONTROLLER_MAPPING;
+        }
+        int idx = uri.indexOf(mapping);
+        if (idx < 0) {
+            return null;
+        }
+        return StringUtils.removeEnd(uri.substring(0, idx), "/");
     }
 
     /**
