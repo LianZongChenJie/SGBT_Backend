@@ -16,10 +16,7 @@ import org.jeecg.modules.bems.hikvision.dto.CameraPlayUrlVO;
 import org.jeecg.modules.bems.hikvision.dto.CameraResourcePageDto;
 import org.jeecg.modules.bems.hikvision.dto.RegionCameraTreeVO;
 import org.jeecg.modules.bems.hikvision.service.ICameraResourceService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.jeecgframework.poi.excel.ExcelExportUtil;
 import org.jeecgframework.poi.excel.entity.ExportParams;
 import org.jeecgframework.poi.excel.entity.enmus.ExcelType;
@@ -128,9 +125,9 @@ public class CameraResourceController {
      * @param streamKey 流标识：实时播放传摄像头唯一编码 cameraIndexCode；回放播放传返回地址中的流标识
      * @return 操作结果
      */
-    @PostMapping("/heartbeat")
+    @GetMapping("/heartbeat")
     @ApiOperation(value = "播放心跳续期", notes = "前端播放过程中周期性调用，刷新HLS流最后活跃时间，避免被空闲/心跳超时规则自动停止拉流")
-    public Result<String> heartbeat(String streamKey) {
+    public Result<String> heartbeat(@RequestParam(required = true, defaultValue = "streamKey") String streamKey) {
         try {
             if (StringUtils.isBlank(streamKey)) {
                 return Result.error("流标识不能为空");
