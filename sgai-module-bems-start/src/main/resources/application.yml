@@ -86,7 +86,8 @@ bems:
       tagids: 5116-5259
 pspace:
   host: 47.95.156.86
-  port: 55672
+  port: 58889
+  web-port: 58080
   username: admin
   password: admin888
   mock: false

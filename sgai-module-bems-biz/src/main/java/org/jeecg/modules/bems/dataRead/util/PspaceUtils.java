@@ -12,7 +12,7 @@ public class PspaceUtils {
     @Value("${pspace.host:192.168.3.63}")
     private String host;
 
-    @Value("${pspace.port:8889}")
+    @Value("${pspace.port:58889}")
     private int port;
 
     @Value("${pspace.username:admin}")
@@ -23,6 +23,19 @@ public class PspaceUtils {
 
     @Value("${pspace.mock:false}")
     private boolean mock;
+
+    /**
+     * pSpace Web API 端口（HTTP 接口 /HistData、/RealData 等），与 host 同机
+     */
+    @Value("${pspace.web-port:58080}")
+    private int webPort;
+
+    /**
+     * pSpace Web API 基址，如 http://47.95.156.86:8080
+     */
+    public String getWebBaseUrl() {
+        return "http://" + host + ":" + webPort;
+    }
 
 
     /**
