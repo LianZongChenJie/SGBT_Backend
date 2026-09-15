@@ -4,7 +4,11 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.jeecg.modules.bems.alarm.entity.AlarmCategory;
+import org.jeecg.modules.bems.alarm.entity.AlarmLevel;
 import org.jeecg.modules.bems.alarm.entity.AlarmRecord;
+import org.jeecg.modules.bems.alarm.service.IAlarmCategoryService;
+import org.jeecg.modules.bems.alarm.service.IAlarmLevelService;
 import org.jeecg.modules.bems.alarm.service.IAlarmRecordService;
 import org.jeecg.modules.bems.dataRead.util.PspaceUtils;
 import org.jeecg.modules.bems.fire.service.IFireAlarmService;
@@ -36,7 +40,7 @@ import java.util.Map;
  * 3. 从 5292(二次码) 取事件：pv 长度=10 且 != "0000000000" 才有效；
  * 4. 以该 10 位二次码匹配 device_attribute.attribute_code（消防点位），
  *    再按同一时间戳取 5282(事件)/5283(数据源)/5284(设备类型)；
- * 5. 组装告警内容写入 alarm_record（告警类别/级别留空）。
+ * 5. 组装告警内容写入 alarm_record（告警类别=属性异常报警，告警等级=紧急）。
  */
 @Slf4j
 @Service
@@ -58,6 +62,10 @@ public class FireAlarmServiceImpl implements IFireAlarmService {
     private static final String EMPTY_ECM = "0000000000";
     /** 二次码长度 */
     private static final int ECM_LENGTH = 10;
+    /** 告警类别名称（对应 alarm_category.alarm_category_name） */
+    private static final String ALARM_CATEGORY_NAME = "属性异常报警";
+    /** 告警等级名称（对应 alarm_level.alarm_level_name） */
+    private static final String ALARM_LEVEL_NAME = "紧急";
 
     private static final DateTimeFormatter TM_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -65,15 +73,21 @@ public class FireAlarmServiceImpl implements IFireAlarmService {
     private final IDeviceAttributeService deviceAttributeService;
     private final IDeviceService deviceService;
     private final IAlarmRecordService alarmRecordService;
+    private final IAlarmCategoryService alarmCategoryService;
+    private final IAlarmLevelService alarmLevelService;
 
     public FireAlarmServiceImpl(PspaceUtils pspaceUtils,
                                 IDeviceAttributeService deviceAttributeService,
                                 IDeviceService deviceService,
-                                IAlarmRecordService alarmRecordService) {
+                                IAlarmRecordService alarmRecordService,
+                                IAlarmCategoryService alarmCategoryService,
+                                IAlarmLevelService alarmLevelService) {
         this.pspaceUtils = pspaceUtils;
         this.deviceAttributeService = deviceAttributeService;
         this.deviceService = deviceService;
         this.alarmRecordService = alarmRecordService;
+        this.alarmCategoryService = alarmCategoryService;
+        this.alarmLevelService = alarmLevelService;
     }
 
     @Override
@@ -133,6 +147,16 @@ public class FireAlarmServiceImpl implements IFireAlarmService {
         Map<String, String> sjyMap = pidTmPv.getOrDefault(PID_SJY, Collections.emptyMap());
         Map<String, String> sblxMap = pidTmPv.getOrDefault(PID_SBLX, Collections.emptyMap());
 
+        // 告警类别/等级：按名称取字典表（页面展示用）
+        AlarmCategory alarmCategory = alarmCategoryService.getOne(
+                new LambdaQueryWrapper<AlarmCategory>()
+                        .eq(AlarmCategory::getAlarmCategoryName, ALARM_CATEGORY_NAME)
+                        .last("limit 1"), false);
+        AlarmLevel alarmLevel = alarmLevelService.getOne(
+                new LambdaQueryWrapper<AlarmLevel>()
+                        .eq(AlarmLevel::getAlarmLevelName, ALARM_LEVEL_NAME)
+                        .last("limit 1"), false);
+
         int saved = 0;
         int skipped = 0;
         for (Map.Entry<String, String> entry : ecmMap.entrySet()) {
@@ -172,6 +196,16 @@ public class FireAlarmServiceImpl implements IFireAlarmService {
             record.setAlarmStatus(AlarmRecord.ALARM_STATUS_UNTREATED);
             record.setAlarmContent(buildAlarmContent(attr.getAttributeName(), ecm,
                     sjMap.get(tm), sjyMap.get(tm), sblxMap.get(tm)));
+            // 告警类别 / 等级（属性异常报警 / 紧急）
+            if (alarmCategory != null) {
+                record.setAlarmCategoryId(alarmCategory.getId());
+                record.setAlarmCategoryName(alarmCategory.getAlarmCategoryName());
+            }
+            if (alarmLevel != null) {
+                record.setAlarmLevelId(alarmLevel.getId());
+                record.setAlarmLevelName(alarmLevel.getAlarmLevelName());
+                record.setAlarmLevelColor(alarmLevel.getAlarmLevelColor());
+            }
             alarmRecordService.save(record);
             saved++;
         }
