@@ -91,3 +91,13 @@ pspace:
   username: admin
   password: admin888
   mock: false
+fire:
+  alarm:
+    # 消防报警增量采集（FireAlarmJob）：每轮窗口 = [上次成功采集截止时间 - overlap-minutes, now]
+    # overlap：向前重叠的分钟数，只需覆盖 pSpace 历史「写入->可见」的延迟（=一个调度周期即可）；
+    # 失败/停机后的补齐靠「不推进水位线 + 下轮窗口自动扩大」，不靠 overlap 调大
+    overlap-minutes: 2
+    # lookback：水位线缺失（首次启动/记录被删）时的回补窗口
+    lookback-minutes: 60
+    # max-span：单次查询跨度上限，超出则截断并告警，防止长时间停机后一次拉取过多
+    max-span-minutes: 720
