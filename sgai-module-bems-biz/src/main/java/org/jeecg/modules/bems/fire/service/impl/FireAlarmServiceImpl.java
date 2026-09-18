@@ -122,8 +122,11 @@ public class FireAlarmServiceImpl implements IFireAlarmService {
 
     @Override
     public int collectFireAlarm() {
-        LocalDateTime etime = LocalDateTime.now();
-        LocalDateTime btime = resolveBtime(etime);
+        LocalDateTime now = LocalDateTime.now();
+        // 起始时间 = 水位线 - 重叠窗口（水位线缺失则按 lookback 回补）
+        LocalDateTime btime = resolveBtime(now);
+        // 结束时间 = 自起始时间起最多推进 maxSpan，且不超过 now
+        LocalDateTime etime = resolveEtime(btime, now);
 
         // 1. 拉取历史数据；请求/解析失败时不推进水位线，下个周期窗口自动扩大重试
         JSONObject data = fetchHistData(btime, etime);
@@ -136,39 +139,51 @@ public class FireAlarmServiceImpl implements IFireAlarmService {
         // 2. 解析并落库（内部按 点位+时间 去重，窗口重叠不会产生重复数据）
         int saved = processData(data, btime, etime);
 
-        // 3. 该区间已完整处理，推进水位线（空区间同样推进，避免静默期窗口无限扩大）
+        // 3. 本次区间已完整处理，水位线推进到「实际覆盖到的终点」。
+        //    注意是 etime 而不是 now：落后时若直接跳到 now，未处理的那段会被永久跳过。
         saveWatermark(etime);
         return saved;
     }
 
     /**
-     * 计算本次查询起始时间：窗口 = [水位线 - overlap, now]。
+     * 计算本次查询起始时间：水位线 - overlap；水位线缺失（首次启动/记录被删）时回补 lookback 分钟。
      * <p>
      * 用持久化水位线代替固定 now-2min，可覆盖：上一次执行期间晚到的数据、单次执行失败漏掉的区间、
-     * 以及服务重启/停机期间的增量（受 maxSpan 限制，超出则截断并告警）。
-     * 重复查询由 alarm_record 的「点位 + 时间」去重兜住，不会产生重复告警。
+     * 以及服务重启/停机期间的增量。重复查询由 alarm_record 的「点位 + 时间」去重兜住，不会产生重复告警。
      */
-    private LocalDateTime resolveBtime(LocalDateTime etime) {
-        LocalDateTime minBtime = etime.minusMinutes(Math.max(maxSpanMinutes, 1));
+    private LocalDateTime resolveBtime(LocalDateTime now) {
         LocalDateTime watermark = readWatermark();
         LocalDateTime btime;
         if (watermark == null) {
-            btime = etime.minusMinutes(Math.max(lookbackMinutes, 1));
+            btime = now.minusMinutes(Math.max(lookbackMinutes, 1));
             log.info("消防报警采集: 未取到水位线，按回补窗口 {} 分钟采集", lookbackMinutes);
         } else {
             btime = watermark.minusMinutes(Math.max(overlapMinutes, 0));
         }
         // 时钟回拨或水位线超前于当前时间时，退化为一个重叠窗口
-        if (btime.isAfter(etime)) {
-            log.warn("消防报警采集: 起始时间({})晚于当前时间({})，按重叠窗口处理", btime, etime);
-            btime = etime.minusMinutes(Math.max(overlapMinutes, 1));
-        }
-        if (btime.isBefore(minBtime)) {
-            log.warn("消防报警采集: 区间跨度超过上限 {} 分钟，起始时间 {} 截断为 {}",
-                    maxSpanMinutes, btime, minBtime);
-            btime = minBtime;
+        if (btime.isAfter(now)) {
+            log.warn("消防报警采集: 起始时间({})晚于当前时间({})，按重叠窗口处理", btime, now);
+            btime = now.minusMinutes(Math.max(overlapMinutes, 1));
         }
         return btime;
+    }
+
+    /**
+     * 计算本次查询结束时间：自 btime 起最多处理 maxSpan 分钟，且不超过当前时间 now。
+     * <p>
+     * maxSpan 是「单轮处理上限」而不是「截断起点」：落后超过 maxSpan 时本轮只处理一段，
+     * 水位线推进到该段终点，下轮从那里接着追，因此长时间停机也能逐轮补齐、不会留下空洞。
+     * 步长至少比 overlap 多 1 分钟，保证水位线每轮都有净推进、不会卡死。
+     */
+    private LocalDateTime resolveEtime(LocalDateTime btime, LocalDateTime now) {
+        long span = Math.max(maxSpanMinutes, overlapMinutes + 1L);
+        LocalDateTime etime = btime.plusMinutes(span);
+        if (etime.isAfter(now)) {
+            return now;
+        }
+        log.warn("消防报警采集: 待补区间较长，本轮只处理到 {}（单轮上限 {} 分钟），后续轮次继续追赶",
+                etime.format(TM_FMT), maxSpanMinutes);
+        return etime;
     }
 
     /**

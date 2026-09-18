@@ -99,5 +99,5 @@ fire:
     overlap-minutes: 2
     # lookback：水位线缺失（首次启动/记录被删）时的回补窗口
     lookback-minutes: 60
-    # max-span：单次查询跨度上限，超出则截断并告警，防止长时间停机后一次拉取过多
+    # max-span：单轮处理上限；落后超过该值时每轮只追一段，水位线随之推进，多轮自动追平
     max-span-minutes: 720
