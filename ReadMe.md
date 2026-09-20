@@ -71,7 +71,7 @@ sgai-module-bems-start   应用启动入口、配置、网关刷新等全局 Bea
 - 可访问的 Nacos（注册 + 配置中心）、Redis、RabbitMQ、数据库
 - 需要读取实时数据时，需可连通 pSpace 服务
 
-> 本地配置 `sgai-module-bems-start/src/main/resources/application.yml` 仅做启动引导与 bems 集成参数，业务/数据源配置在 Nacos。当前示例指向 `192.168.204.51:8848`（`DEFAULT_GROUP` / `public`），并加载 `jeecg.yaml`、`bems-baotou-dev.yaml`。
+> 本地配置 `sgai-module-bems-start/src/main/resources/application.yml` 仅做启动引导与 bems 集成参数，业务/数据源配置在 Nacos。当前示例指向 `192.168.204.109:8848`（`DEFAULT_GROUP` / `public`），并加载 `jeecg.yaml`、`bems-baotou-dev.yaml`。
 
 ---
 
