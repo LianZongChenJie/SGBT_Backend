@@ -115,7 +115,8 @@ public class MinuteDataServiceImpl extends ServiceImpl<MinuteDataMapper, MinuteD
         }
     }
 
-    private MinuteData findLatest(Long deviceId){
+    @Override
+    public MinuteData findLatest(Long deviceId){
         MinuteData minuteData = (MinuteData)redisUtil.get(getCacheKeyMax(deviceId));
         if(minuteData == null){
             minuteData = findLatestByDeviceId(deviceId);

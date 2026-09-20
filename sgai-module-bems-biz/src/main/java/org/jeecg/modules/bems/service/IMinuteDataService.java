@@ -19,5 +19,11 @@ public interface IMinuteDataService extends IService<MinuteData> {
     boolean saveOrUpdate(MinuteData minuteData);
 
     void preGeneration(List<Long> deviceIds, LocalDate date);
-
+    /**
+     * 获取设备最新的（上一条）分钟数据
+     *
+     * @param deviceId 设备id
+     * @return 最新的分钟数据
+     */
+    MinuteData findLatest(Long deviceId);
 }

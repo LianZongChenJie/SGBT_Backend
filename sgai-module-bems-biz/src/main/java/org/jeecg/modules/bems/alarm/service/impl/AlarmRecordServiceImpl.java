@@ -1,6 +1,7 @@
 package org.jeecg.modules.bems.alarm.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -222,6 +223,9 @@ public class AlarmRecordServiceImpl extends ServiceImpl<AlarmRecordMapper, Alarm
                 continue;
             }
             List<AlarmRulePoint> rulePointList = rulePointMap.get(rule.getId());
+            if (rulePointList == null || rulePointList.isEmpty()){
+                continue;
+            }
             for (AlarmRulePoint rulePoint : rulePointList) {
                 BigDecimal v = null;
                 if(values.containsKey(rulePoint.getTimeGranularity())){
@@ -322,6 +326,12 @@ public class AlarmRecordServiceImpl extends ServiceImpl<AlarmRecordMapper, Alarm
                 }
             }
         }
+    }
+
+    @Override
+    public List<String> listBySecondFloorElectric() {
+        List<AlarmRecord> list = list(new QueryWrapper<AlarmRecord>().like("device_name", "二楼电表"));
+        return list.stream().map(AlarmRecord::getAlarmContent).toList();
     }
 
     /**

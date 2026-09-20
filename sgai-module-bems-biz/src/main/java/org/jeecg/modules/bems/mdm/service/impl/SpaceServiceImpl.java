@@ -335,13 +335,13 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
      */
     @Override
     public List<PermissionSpaceTreeModel> buildPermissionTree(Collection<Long> spaceIds) {
-        if (spaceIds == null || spaceIds.isEmpty()) {
-            return Collections.emptyList();
-        }
+//        if (spaceIds == null || spaceIds.isEmpty()) {
+//            return Collections.emptyList();
+//        }
 
         // 1. 查询所有空间节点
         List<Space> allSpaces = list();
-
+        spaceIds = list().stream().map(Space::getId).toList();
         // 2. 构建ID->Space的映射
         Map<Long, Space> spaceMap = allSpaces.stream()
                 .collect(Collectors.toMap(Space::getId, s -> s));
@@ -352,6 +352,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         for (Long spaceId : spaceIds) {
             collectNodeAndAncestors(spaceId, spaceMap, includedIds);
         }
+
 
         // 4. 过滤并转换为 PermissionSpaceTreeModel，同时标记权限
         List<PermissionSpaceTreeModel> filteredModels = allSpaces.stream()

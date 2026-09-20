@@ -1,6 +1,7 @@
 package org.jeecg.modules.bems.energyAnalysis.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import dm.jdbc.util.StringUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jeecg.modules.bems.energyAnalysis.dto.MeteringPointChatDto;
 import org.jeecg.modules.bems.energyAnalysis.entity.MeteringPoint;
 import org.jeecg.modules.bems.energyAnalysis.entity.MeteringPointData;
+import org.jeecg.modules.bems.energyAnalysis.entity.MeteringPointDataHour;
 import org.jeecg.modules.bems.energyAnalysis.service.*;
 import org.jeecg.modules.bems.energyAnalysis.util.Jexl3Util;
 import org.jeecg.modules.bems.energyAnalysis.util.TableUtil;
@@ -486,6 +488,20 @@ public class MeteringPointDataServiceImpl implements IMeteringPointDataService {
         }
         chat.setChatSeriesList(series);
         return chat;
+    }
+
+    @Override
+    public List<MeteringPointDataHour> getHourLast() {
+        // 获取当天开始时间 00:00:00
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        // 获取当天结束时间 23:59:59
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+
+        LambdaQueryWrapper<MeteringPointDataHour> wrapper = new LambdaQueryWrapper<>();
+        wrapper.between(MeteringPointDataHour::getTime, startOfDay, endOfDay)
+                .orderByAsc(MeteringPointDataHour::getTime);
+
+        return hourDataService.list(wrapper);
     }
 
     private Chat findChat(MeteringPointChatDto param){

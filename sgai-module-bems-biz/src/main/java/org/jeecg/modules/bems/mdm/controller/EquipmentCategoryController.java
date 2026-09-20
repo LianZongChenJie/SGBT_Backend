@@ -108,18 +108,18 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
     @ApiOperation(value = "类别-权限树", notes = "根据当前用户数据权限查询类别树，父级节点会被标记为不在权限范围内")
     @GetMapping("/getPermissionTree")
     public Result<List<PermissionEquipmentCategoryTreeModel>> getPermissionTree(@RequestParam(required = false) String type){
-        // 1. 获取当前登录用户的专业权限范围
-        UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
-        Set<Long> categoryIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY);
-
-        // 3. 如果没有权限，返回空树
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return Result.OK(new ArrayList<>());
-        }
+//        // 1. 获取当前登录用户的专业权限范围
+//        UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
+//        Set<Long> categoryIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY);
+//
+//        // 3. 如果没有权限，返回空树
+//        if (categoryIds == null || categoryIds.isEmpty()) {
+//            return Result.OK(new ArrayList<>());
+//        }
 
         // 4. 构建类别权限树
         List<PermissionEquipmentCategoryTreeModel> tree = equipmentCategoryService.buildPermissionTree(
-                categoryIds, type);
+                new ArrayList<>(), type);
 
         return Result.OK(tree);
     }

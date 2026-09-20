@@ -13,6 +13,11 @@ public class DeviceConstant {
     public static final Long CATEGORY_ELECTRICITY = 2L;
 
     /**
+     * 设备类别：电表
+     */
+    public static final Long ELECTRICITY_METER= 8L;
+
+    /**
      * 设备类别：泛光
      */
     public static final Long CATEGORY_LIGHTING = 15L;

@@ -12,17 +12,17 @@ import javax.annotation.PostConstruct;
 @Component
 @AllArgsConstructor
 @Slf4j
-public class ReadDataJob {
+public class ReadBldbDataJob {
 
     private final IMeteringPointDataService service;
 
     private final IPspaceWork pspaceWork;
 
-        @Scheduled(cron = "0 */15 * * * ?")
+    @Scheduled(cron = "0 */15 * * * ?")
 //    @PostConstruct
     public void calculationMeteringPointData() {
-        log.info("获取数据开始执行开始执行");
-        int t = pspaceWork.refreshRealValueByNumericAcquisition("");
+        log.info("获取ELDB数据开始执行开始执行");
+        int t = pspaceWork.refreshRealValueByNumericAcquisition("ELDB");
         log.info("refreshRealValueByNumericAcquisition 执行完成，更新 {} 条数据", t);
     }
 

@@ -21,7 +21,7 @@ public interface IPspaceWork {
      * 以采集编码作为 tagId 批量读取实时数据，并按返回数据中的 tagId 回写对应行的 value。
      * @return 实时读取结果集合（元素含 tagId/value/timestamp 等），读取失败或无数值返回时为空集合
      */
-    int refreshRealValueByNumericAcquisition();
+    int refreshRealValueByNumericAcquisition(String type);
 
     /**
      * 根据设备属性直接刷新所属设备的运行状态与最后采集时间：

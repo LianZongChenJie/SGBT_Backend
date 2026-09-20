@@ -53,7 +53,7 @@ public class MeteringPointDataController {
 
     @ApiOperation(value = "重新计算", notes = "重新计算")
     @AutoLog(value = "计量点位-重新计算")
-    @RequiresPermissions("bems:meterPointData:calculateValue")
+//    @RequiresPermissions("bems:meterPointData:calculateValue")
     @PostMapping("/calculateValue")
     public Result<String> calculateValue(@RequestBody MeteringPointDataDto param){
         service.calculateValue(param.getHour());

@@ -8,10 +8,7 @@ import org.jeecg.modules.bems.entity.BaseEntity;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 能源价格配置
@@ -155,28 +152,30 @@ public class EnergyPricingConfig extends BaseEntity {
 
     /**
      * 格式化峰谷分时计价
+     *
      * @return 格式化后的峰谷分时计价，key：MM:HH，value：价格
      */
-    public Map<String,BigDecimal> formatPVTS(){
-        Map<String,BigDecimal> res = new HashMap<>();
-        res.putAll(formatPVTS(this.getApplyMonths1(), this.getTipTimeSlot1(), this.getPeakTimeSlot1(), this.getFlatTimeSlot1(), this.getValleyTimeSlot1(), this.getTipPrice(), this.getPeakPrice(), this.getFlatPrice(), this.getValleyPrice()));
-        res.putAll(formatPVTS(this.getApplyMonths2(), this.getTipTimeSlot2(), this.getPeakTimeSlot2(), this.getFlatTimeSlot2(), this.getValleyTimeSlot2(), this.getTipPrice(), this.getPeakPrice(), this.getFlatPrice(), this.getValleyPrice()));
+    public Map<String, BigDecimal> formatPVTS() {
+        Map<String, BigDecimal> res = new HashMap<>();
+        res.putAll(formatPVTS2(this.getApplyMonths1(), this.getTipTimeSlot1(), this.getPeakTimeSlot1(), this.getFlatTimeSlot1(), this.getValleyTimeSlot1(), this.getTipPrice(), this.getPeakPrice(), this.getFlatPrice(), this.getValleyPrice()));
+        res.putAll(formatPVTS2(this.getApplyMonths2(), this.getTipTimeSlot2(), this.getPeakTimeSlot2(), this.getFlatTimeSlot2(), this.getValleyTimeSlot2(), this.getTipPrice(), this.getPeakPrice(), this.getFlatPrice(), this.getValleyPrice()));
         return res;
     }
 
-    public List<LadderPricing> formatLadderPricing(){
+    public List<LadderPricing> formatLadderPricing() {
         List<LadderPricing> res = new ArrayList<>();
-        res.add(new LadderPricing(BigDecimal.ZERO,this.getStep1Max(),this.getStep1UnitPrice()));
-        res.add(new LadderPricing(this.getStep2Min(),this.getStep2Max(),this.getStep2UnitPrice()));
-        res.add(new LadderPricing(this.getStep3Min(),null,this.getStep3UnitPrice()));
+        res.add(new LadderPricing(BigDecimal.ZERO, this.getStep1Max(), this.getStep1UnitPrice()));
+        res.add(new LadderPricing(this.getStep2Min(), this.getStep2Max(), this.getStep2UnitPrice()));
+        res.add(new LadderPricing(this.getStep3Min(), null, this.getStep3UnitPrice()));
         return res;
     }
 
     /**
      * 获取当前能耗成本
+     *
      * @param pricings 阶梯价格
-     * @param history 历史用量
-     * @param now 当前用量
+     * @param history  历史用量
+     * @param now      当前用量
      */
     private BigDecimal calculationLadderPricing(List<LadderPricing> pricings, BigDecimal history, BigDecimal now) {
         BigDecimal total = history.add(now);
@@ -210,29 +209,106 @@ public class EnergyPricingConfig extends BaseEntity {
         return cost;
     }
 
-    private Map<String,BigDecimal> formatPVTS(String months, String tipTimeSlot, String peakTimeSlot, String flatTimeSlot, String valleyTimeSlot, BigDecimal tipPrice, BigDecimal peakPrice, BigDecimal flatPrice, BigDecimal valleyPrice){
+    private Map<String, BigDecimal> formatPVTS2(String months,
+                                               String tipTimeSlot, String peakTimeSlot,
+                                               String flatTimeSlot, String valleyTimeSlot,
+                                               BigDecimal tipPrice, BigDecimal peakPrice,
+                                               BigDecimal flatPrice, BigDecimal valleyPrice) {
+        Map<String, BigDecimal> res = new LinkedHashMap<>();
+        if (Objects.isNull(months) || months.isEmpty()) {
+            return res;
+        }
+
+        // 先用普通 map 收集，key 形如 "1-08"
+        Map<String, BigDecimal> temp = new HashMap<>();
         String[] applyMonths1 = months.split(",");
-        Map<String,BigDecimal> res = new HashMap<>();
+        for (String s : applyMonths1) {
+            String month = s.trim();
+            if (month.isEmpty()) {
+                continue;
+            }
+            String monthKey = String.format("%02d", Integer.parseInt(month));
+            putSlot(temp, monthKey, tipTimeSlot, tipPrice);
+            putSlot(temp, monthKey, peakTimeSlot, peakPrice);
+            putSlot(temp, monthKey, flatTimeSlot, flatPrice);
+            putSlot(temp, monthKey, valleyTimeSlot, valleyPrice);
+        }
+
+        // 按 月份数值 -> 小时数值 排序后放入 LinkedHashMap
+        temp.entrySet().stream()
+                .sorted((e1, e2) -> {
+                    String[] k1 = e1.getKey().split("-");
+                    String[] k2 = e2.getKey().split("-");
+                    int m1 = Integer.parseInt(k1[0]);
+                    int m2 = Integer.parseInt(k2[0]);
+                    if (m1 != m2) {
+                        return Integer.compare(m1, m2);
+                    }
+                    int h1 = Integer.parseInt(k1[1]);
+                    int h2 = Integer.parseInt(k2[1]);
+                    return Integer.compare(h1, h2);
+                })
+                .forEach(e -> res.put(e.getKey(), e.getValue()));
+
+        return res;
+    }
+
+    private void putSlot(Map<String, BigDecimal> res, String month, String timeSlot, BigDecimal price) {
+        if (Objects.isNull(timeSlot) || timeSlot.isEmpty() || Objects.isNull(price)) {
+            return;
+        }
+        for (String item : timeSlot.split(",")) {
+            // item 形如 08:00-12:00
+            String[] parts = item.split("-");
+            if (parts.length != 2) {
+                continue;
+            }
+            int startHour = Integer.parseInt(parts[0].split(":")[0]);
+            int endHour = Integer.parseInt(parts[1].split(":")[0]);
+            // 处理 24:00 的情况
+            if (endHour == 0 && parts[1].startsWith("24")) {
+                endHour = 24;
+            }
+            for (int h = startHour; h < endHour; h++) {
+                String hour = String.format("%02d", h % 24);
+                res.put(month + "-" + hour, price);
+            }
+        }
+    }
+    private Map<String, BigDecimal> formatPVTS(String months, String tipTimeSlot, String peakTimeSlot, String flatTimeSlot, String valleyTimeSlot, BigDecimal tipPrice, BigDecimal peakPrice, BigDecimal flatPrice, BigDecimal valleyPrice) {
+        Map<String, BigDecimal> res = new HashMap<>();
+        if (Objects.isNull(months) || months.isEmpty()) {
+            return res;
+        }
+        String[] applyMonths1 = months.split(",");
         for (String s : applyMonths1) {
             // 尖时段
-            String[] tipTimeSlot1 = tipTimeSlot.split(",");
-            for (String item : tipTimeSlot1) {
-                res.put(s + "-" + item,tipPrice);
+            if (Objects.nonNull(tipTimeSlot)) {
+                String[] tipTimeSlot1 = tipTimeSlot.split(",");
+                for (String item : tipTimeSlot1) {
+                    res.put(s + "-" + item, tipPrice);
+                }
             }
-            // 峰时段
-            String[] peakTimeSlot1 = peakTimeSlot.split(",");
-            for (String item : peakTimeSlot1) {
-                res.put(s + "-" + item,peakPrice);
+            if (Objects.nonNull(peakTimeSlot)) {
+                // 峰时段
+                String[] peakTimeSlot1 = peakTimeSlot.split(",");
+                for (String item : peakTimeSlot1) {
+                    res.put(s + "-" + item, peakPrice);
+                }
             }
-            // 平谷时段
-            String[] flatTimeSlot1 = flatTimeSlot.split(",");
-            for (String item : flatTimeSlot1) {
-                res.put(s + "-" + item,flatPrice);
+            if (Objects.nonNull(flatTimeSlot)) {
+                // 平谷时段
+                String[] flatTimeSlot1 = flatTimeSlot.split(",");
+                for (String item : flatTimeSlot1) {
+                    res.put(s + "-" + item, flatPrice);
+                }
             }
-            // 谷时段
-            String[] valleyTimeSlot1 = valleyTimeSlot.split(",");
-            for (String item : valleyTimeSlot1) {
-                res.put(s + "-" + item,valleyPrice);
+            if (Objects.nonNull(valleyTimeSlot)) {
+                // 谷时段
+                String[] valleyTimeSlot1 = valleyTimeSlot.split(",");
+                for (String item : valleyTimeSlot1) {
+                    res.put(s + "-" + item, valleyPrice);
+                }
             }
         }
         return res;

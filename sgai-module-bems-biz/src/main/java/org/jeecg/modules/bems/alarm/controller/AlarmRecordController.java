@@ -57,4 +57,11 @@ public class AlarmRecordController {
         service.alarmDetection(attribute.getDeviceId(),attribute.getId(),attribute.getValue());
         return Result.ok();
     }
+
+
+    @GetMapping("/listBySecondFloorElectric")
+    public Result<List<String>> listBySecondFloorElectric(){
+        List<String> list = service.listBySecondFloorElectric();
+        return Result.ok(list);
+    }
 }

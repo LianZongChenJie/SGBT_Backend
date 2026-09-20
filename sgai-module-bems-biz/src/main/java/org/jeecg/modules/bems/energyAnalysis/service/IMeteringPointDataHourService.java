@@ -18,4 +18,9 @@ public interface IMeteringPointDataHourService extends IService<MeteringPointDat
     List<MeteringPointDataHour> findByPointIdAndTimeRange(Long pointId, LocalDateTime startTime, LocalDateTime endTime);
 
     MeteringPointDataHour findByPointIdAndTime(Long pointId,LocalDateTime hour);
+
+
+    List<MeteringPointDataHour> getHourLast();
+
+
 }
