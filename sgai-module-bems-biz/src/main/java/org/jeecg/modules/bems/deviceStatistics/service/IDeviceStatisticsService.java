@@ -13,5 +13,5 @@ public interface IDeviceStatisticsService {
      *
      * @return 统计结果
      */
-    DeviceStatisticsVo statistics(String categoryId);
+    DeviceStatisticsVo statistics();
 }

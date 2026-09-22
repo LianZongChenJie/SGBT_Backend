@@ -19,12 +19,7 @@ public class DeviceStatisticsVo implements Serializable {
      * 设备总数量
      */
     @ApiModelProperty(value = "设备总数量")
-    private Long deviceCount1;
-    /**
-     * 仪表总数量
-     */
-    @ApiModelProperty(value = "仪表总数量")
-    private Long deviceCount2;
+    private Long deviceCount;
 
     /**
      * 设备类别数量
