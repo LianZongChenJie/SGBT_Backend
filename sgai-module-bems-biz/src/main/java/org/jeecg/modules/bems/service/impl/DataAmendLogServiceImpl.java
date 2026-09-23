@@ -41,26 +41,27 @@ public class DataAmendLogServiceImpl extends ServiceImpl<DataAmendLogMapper, Dat
             return new Page<>(param.getPageNo(), param.getPageSize());
         }
 
-        // 2. 获取当前用户的数据权限范围
-        UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
-        if (dataScope == null || CollectionUtil.isEmpty(dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY)) || CollectionUtil.isEmpty(dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE))) {
-            // 无任何权限，返回空结果
-            return new Page<>(param.getPageNo(), param.getPageSize());
-        }
+//        // 2. 获取当前用户的数据权限范围
+//        UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
+//        if (dataScope == null || CollectionUtil.isEmpty(dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY)) || CollectionUtil.isEmpty(dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE))) {
+//            // 无任何权限，返回空结果
+//            return new Page<>(param.getPageNo(), param.getPageSize());
+//        }
 
         // 3. 创建分页对象
         Page<DataAmendLog> page = new Page<>(param.getPageNo(), param.getPageSize());
 
         // 4. 使用 EXISTS 子查询进行分页查询（只需一次数据库调用）
         IPage<DataAmendLog> resultPage = baseMapper.selectPageWithPermission(
-            page,
-            param.getDeviceId(),
-            param.getDeviceName(),
-            param.getDeviceCode(),
-            param.getSpaceIdList(),
-            dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY),  // 数据权限：专业ID集合
-            dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE),      // 数据权限：空间ID集合
-            param.getAmendType()
+                page,
+                param.getDeviceId(),
+                param.getDeviceName(),
+                param.getDeviceCode(),
+                param.getSpaceIdList(),
+//            dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY),  // 数据权限：专业ID集合
+//            dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE),      // 数据权限：空间ID集合
+                null, null,
+                param.getAmendType()
         );
 
         // 5. 转换为 DTO
@@ -69,12 +70,12 @@ public class DataAmendLogServiceImpl extends ServiceImpl<DataAmendLogMapper, Dat
         // 6. 补充设备名称和编号信息
         if (CollectionUtil.isNotEmpty(result.getRecords())) {
             List<Device> devices = deviceService.findByDeviceIds(
-                result.getRecords().stream()
-                    .map(DataAmendLogDto::getDeviceId)
-                    .toList()
+                    result.getRecords().stream()
+                            .map(DataAmendLogDto::getDeviceId)
+                            .toList()
             );
             Map<Long, Device> deviceMap = devices.stream()
-                .collect(Collectors.toMap(Device::getId, Function.identity(), (k1, k2) -> k2));
+                    .collect(Collectors.toMap(Device::getId, Function.identity(), (k1, k2) -> k2));
 
             result.getRecords().forEach(log -> {
                 Device device = deviceMap.get(log.getDeviceId());

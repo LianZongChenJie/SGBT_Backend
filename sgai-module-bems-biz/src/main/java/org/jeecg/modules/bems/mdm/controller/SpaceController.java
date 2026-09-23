@@ -70,17 +70,17 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
 	 @ApiOperation(value = "空间位置-权限树", notes = "根据当前用户数据权限查询空间树，父级节点会被标记为不在权限范围内")
 	 @GetMapping("/getPermissionTree")
 	 public Result<List<PermissionSpaceTreeModel>> getPermissionTree(){
-		 // 1. 获取当前登录用户的空间权限范围
-		 UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
-		 Set<Long> spaceIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE);
-
-		 // 3. 如果没有权限，返回空树
-		 if (spaceIds == null || spaceIds.isEmpty()) {
-			 return Result.OK(new ArrayList<>());
-		 }
+//		 // 1. 获取当前登录用户的空间权限范围
+//		 UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
+//		 Set<Long> spaceIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE);
+//
+//		 // 3. 如果没有权限，返回空树
+//		 if (spaceIds == null || spaceIds.isEmpty()) {
+//			 return Result.OK(new ArrayList<>());
+//		 }
 
 		 // 4. 构建权限树
-		 List<PermissionSpaceTreeModel> tree = spaceService.buildPermissionTree(spaceIds);
+		 List<PermissionSpaceTreeModel> tree = spaceService.buildPermissionTree(new ArrayList<>());
 
 		 return Result.OK(tree);
 	 }
@@ -126,17 +126,18 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
 				 .map(Device::getSpaceId)
 				 .collect(Collectors.toSet());
 
-		 // 获取当前用户的数据权限范围
-		 UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
-		 Set<Long> permissionSpaceIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE);
-
-		 // 如果用户没有空间权限，返回空树
-		 if (permissionSpaceIds == null || permissionSpaceIds.isEmpty()) {
-			 return Result.ok(new ArrayList<>());
-		 }
+//		 // 获取当前用户的数据权限范围
+//		 UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
+//		 Set<Long> permissionSpaceIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_SPACE);
+//
+//		 // 如果用户没有空间权限，返回空树
+//		 if (permissionSpaceIds == null || permissionSpaceIds.isEmpty()) {
+//			 return Result.ok(new ArrayList<>());
+//		 }
 
 		 // 取交集：只保留用户有权限且有设备的空间
-		 deviceSpaceIds.retainAll(permissionSpaceIds);
+//		 deviceSpaceIds.retainAll(permissionSpaceIds);
+         deviceSpaceIds.retainAll(new ArrayList<>());
 
 		 return Result.ok(spaceService.buildPermissionTree(deviceSpaceIds));
 	 }
@@ -291,7 +292,7 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
 	 */
 	@AutoLog(value = "空间位置-添加")
 	@ApiOperation(value="空间位置-添加", notes="空间位置-添加")
-    @RequiresPermissions("bems:space:add")
+    //@RequiresPermission("bems:space:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody Space space) {
 		spaceService.addSpace(space);
@@ -306,7 +307,7 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
 	 */
 	@AutoLog(value = "空间位置-编辑")
 	@ApiOperation(value="空间位置-编辑", notes="空间位置-编辑")
-    @RequiresPermissions("bems:space:edit")
+    //@RequiresPermission("bems:space:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody Space space) {
 		spaceService.updateSpace(space);
@@ -321,7 +322,7 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
 	 */
 	@AutoLog(value = "空间位置-通过id删除")
 	@ApiOperation(value="空间位置-通过id删除", notes="空间位置-通过id删除")
-    @RequiresPermissions("bems:space:delete")
+    //@RequiresPermission("bems:space:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		spaceService.deleteSpace(id);
@@ -336,7 +337,7 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
 	 */
 	@AutoLog(value = "空间位置-批量删除")
 	@ApiOperation(value="空间位置-批量删除", notes="空间位置-批量删除")
-    @RequiresPermissions("bems:space:deleteBatch")
+    //@RequiresPermission("bems:space:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.spaceService.removeByIds(Arrays.asList(ids.split(",")));
@@ -366,7 +367,7 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
     * @param request
     * @param space
     */
-    @RequiresPermissions("bems:space:exportXls")
+    //@RequiresPermission("bems:space:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, Space space) {
 		return super.exportXls(request, space, Space.class, "空间位置");
@@ -379,7 +380,7 @@ public class SpaceController extends JeecgController<Space, ISpaceService>{
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:space:importExcel")
+    //@RequiresPermission("bems:space:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
 		return super.importExcel(request, response, Space.class);

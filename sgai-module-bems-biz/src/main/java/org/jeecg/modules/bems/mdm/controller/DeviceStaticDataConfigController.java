@@ -20,7 +20,7 @@ public class DeviceStaticDataConfigController {
 
     @AutoLog(value = "设备静态信息配置-添加")
     @ApiOperation(value = "设备静态信息配置-添加", notes = "设备静态信息配置-添加")
-    @RequiresPermissions("bems:deviceStaticDataConfig:add")
+    //@RequiresPermission("bems:deviceStaticDataConfig:add")
     @PostMapping("/add")
     public Result<String> add(@RequestBody DeviceStaticDataConfig data) {
         service.save(data);
@@ -29,7 +29,7 @@ public class DeviceStaticDataConfigController {
 
     @AutoLog(value = "设备静态信息配置-删除")
     @ApiOperation(value = "设备静态信息配置-删除", notes = "设备静态信息配置-删除")
-    @RequiresPermissions("bems:deviceStaticDataConfig:delete")
+    //@RequiresPermission("bems:deviceStaticDataConfig:delete")
     @DeleteMapping("/delete")
     public Result<String> delete(@RequestParam(name="id",required=true) Long id) {
         service.removeById(id);
@@ -44,7 +44,7 @@ public class DeviceStaticDataConfigController {
 
     @AutoLog(value = "设备静态信息配置-编辑")
     @ApiOperation(value = "设备静态信息配置-编辑", notes = "设备静态信息配置-编辑")
-    @RequiresPermissions("bems:deviceStaticDataConfig:edit")
+    //@RequiresPermission("bems:deviceStaticDataConfig:edit")
     @PutMapping("/edit")
     public Result<String> edit(@RequestBody DeviceStaticDataConfig data) {
         service.updateById(data);

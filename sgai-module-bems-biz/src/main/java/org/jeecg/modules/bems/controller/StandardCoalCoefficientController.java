@@ -66,7 +66,7 @@ public class 	StandardCoalCoefficientController extends JeecgController<Standard
 	 */
 	@AutoLog(value = "折标煤系数管理-添加")
 	@ApiOperation(value="折标煤系数管理-添加", notes="折标煤系数管理-添加")
-	@RequiresPermissions("bems:standard_coal_coefficient:add")
+	//@RequiresPermission("bems:standard_coal_coefficient:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody StandardCoalCoefficient standardCoalCoefficient) {
 		standardCoalCoefficientService.save(standardCoalCoefficient);
@@ -81,7 +81,7 @@ public class 	StandardCoalCoefficientController extends JeecgController<Standard
 	 */
 	@AutoLog(value = "折标煤系数管理-编辑")
 	@ApiOperation(value="折标煤系数管理-编辑", notes="折标煤系数管理-编辑")
-	@RequiresPermissions("bems:standard_coal_coefficient:edit")
+	//@RequiresPermission("bems:standard_coal_coefficient:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody StandardCoalCoefficient standardCoalCoefficient) {
 		standardCoalCoefficientService.updateById(standardCoalCoefficient);
@@ -96,7 +96,7 @@ public class 	StandardCoalCoefficientController extends JeecgController<Standard
 	 */
 	@AutoLog(value = "折标煤系数管理-通过id删除")
 	@ApiOperation(value="折标煤系数管理-通过id删除", notes="折标煤系数管理-通过id删除")
-	@RequiresPermissions("bems:standard_coal_coefficient:delete")
+	//@RequiresPermission("bems:standard_coal_coefficient:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		standardCoalCoefficientService.removeById(id);
@@ -111,7 +111,7 @@ public class 	StandardCoalCoefficientController extends JeecgController<Standard
 	 */
 	@AutoLog(value = "折标煤系数管理-批量删除")
 	@ApiOperation(value="折标煤系数管理-批量删除", notes="折标煤系数管理-批量删除")
-	@RequiresPermissions("bems:standard_coal_coefficient:deleteBatch")
+	//@RequiresPermission("bems:standard_coal_coefficient:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.standardCoalCoefficientService.removeByIds(Arrays.asList(ids.split(",")));
@@ -141,7 +141,7 @@ public class 	StandardCoalCoefficientController extends JeecgController<Standard
     * @param request
     * @param standardCoalCoefficient
     */
-    @RequiresPermissions("bems:standard_coal_coefficient:exportXls")
+    //@RequiresPermission("bems:standard_coal_coefficient:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, StandardCoalCoefficient standardCoalCoefficient) {
         return super.exportXls(request, standardCoalCoefficient, StandardCoalCoefficient.class, "折标煤系数管理");
@@ -154,7 +154,7 @@ public class 	StandardCoalCoefficientController extends JeecgController<Standard
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:standard_coal_coefficient:importExcel")
+    //@RequiresPermission("bems:standard_coal_coefficient:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, StandardCoalCoefficient.class);

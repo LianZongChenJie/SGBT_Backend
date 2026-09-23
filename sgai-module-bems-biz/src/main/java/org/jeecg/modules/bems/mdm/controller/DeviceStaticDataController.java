@@ -29,7 +29,7 @@ public class DeviceStaticDataController {
 
     @AutoLog(value = "设备静态信息-保存")
     @ApiOperation(value = "设备静态信息-保存", notes = "设备静态信息-保存")
-    @RequiresPermissions("bems:deviceStaticData:save")
+    //@RequiresPermission("bems:deviceStaticData:save")
     @PostMapping("/save")
     public Result<String> save(@RequestBody DeviceStaticDataDto data){
         service.save(data);

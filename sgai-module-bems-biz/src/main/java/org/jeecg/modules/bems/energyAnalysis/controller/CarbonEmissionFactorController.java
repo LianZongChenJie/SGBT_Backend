@@ -66,7 +66,7 @@ public class CarbonEmissionFactorController extends JeecgController<CarbonEmissi
 	 */
 	@AutoLog(value = "碳排放因子管理-添加")
 	@ApiOperation(value="碳排放因子管理-添加", notes="碳排放因子管理-添加")
-	@RequiresPermissions("bems:carbon_emission_factor:add")
+	//@RequiresPermission("bems:carbon_emission_factor:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody CarbonEmissionFactor carbonEmissionFactor) {
 		carbonEmissionFactorService.save(carbonEmissionFactor);
@@ -81,7 +81,7 @@ public class CarbonEmissionFactorController extends JeecgController<CarbonEmissi
 	 */
 	@AutoLog(value = "碳排放因子管理-编辑")
 	@ApiOperation(value="碳排放因子管理-编辑", notes="碳排放因子管理-编辑")
-	@RequiresPermissions("bems:carbon_emission_factor:edit")
+	//@RequiresPermission("bems:carbon_emission_factor:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody CarbonEmissionFactor carbonEmissionFactor) {
 		carbonEmissionFactorService.updateById(carbonEmissionFactor);
@@ -96,7 +96,7 @@ public class CarbonEmissionFactorController extends JeecgController<CarbonEmissi
 	 */
 	@AutoLog(value = "碳排放因子管理-通过id删除")
 	@ApiOperation(value="碳排放因子管理-通过id删除", notes="碳排放因子管理-通过id删除")
-	@RequiresPermissions("bems:carbon_emission_factor:delete")
+	//@RequiresPermission("bems:carbon_emission_factor:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		carbonEmissionFactorService.removeById(id);
@@ -111,7 +111,7 @@ public class CarbonEmissionFactorController extends JeecgController<CarbonEmissi
 	 */
 	@AutoLog(value = "碳排放因子管理-批量删除")
 	@ApiOperation(value="碳排放因子管理-批量删除", notes="碳排放因子管理-批量删除")
-	@RequiresPermissions("bems:carbon_emission_factor:deleteBatch")
+	//@RequiresPermission("bems:carbon_emission_factor:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.carbonEmissionFactorService.removeByIds(Arrays.asList(ids.split(",")));
@@ -141,7 +141,7 @@ public class CarbonEmissionFactorController extends JeecgController<CarbonEmissi
     * @param request
     * @param carbonEmissionFactor
     */
-    @RequiresPermissions("bems:carbon_emission_factor:exportXls")
+    //@RequiresPermission("bems:carbon_emission_factor:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, CarbonEmissionFactor carbonEmissionFactor) {
         return super.exportXls(request, carbonEmissionFactor, CarbonEmissionFactor.class, "碳排放因子管理");
@@ -154,7 +154,7 @@ public class CarbonEmissionFactorController extends JeecgController<CarbonEmissi
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:carbon_emission_factor:importExcel")
+    //@RequiresPermission("bems:carbon_emission_factor:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, CarbonEmissionFactor.class);

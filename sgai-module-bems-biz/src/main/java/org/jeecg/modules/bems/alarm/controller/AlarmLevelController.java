@@ -19,7 +19,7 @@ public class AlarmLevelController {
     private final IAlarmLevelService service;
 
     @PostMapping("/add")
-    @RequiresPermissions("bems:alarmLevel:add")
+    //@RequiresPermission("bems:alarmLevel:add")
     @AutoLog(value = "报警级别-添加")
     public Result<String> add(@RequestBody AlarmLevel param){
         service.save(param);
@@ -27,7 +27,7 @@ public class AlarmLevelController {
     }
 
     @PostMapping("/edit")
-    @RequiresPermissions("bems:alarmLevel:edit")
+    //@RequiresPermission("bems:alarmLevel:edit")
     @AutoLog(value = "报警级别-编辑")
     public Result<String> edit(@RequestBody AlarmLevel param){
         service.updateById(param);
@@ -35,7 +35,7 @@ public class AlarmLevelController {
     }
 
     @DeleteMapping("/delete")
-    @RequiresPermissions("bems:alarmLevel:delete")
+    //@RequiresPermission("bems:alarmLevel:delete")
     @AutoLog(value = "报警级别-删除")
     public Result<String> delete(Long id){
         service.removeById(id);
@@ -53,7 +53,7 @@ public class AlarmLevelController {
     }
 
     @PostMapping("/startLevel")
-    @RequiresPermissions("bems:alarmLevel:startLevel")
+    //@RequiresPermission("bems:alarmLevel:startLevel")
     @AutoLog(value = "报警级别-启用")
     public Result<String> startLevel(@RequestParam(name = "id") Long id){
         service.startLevel(id);
@@ -61,7 +61,7 @@ public class AlarmLevelController {
     }
 
     @PostMapping("/stopLevel")
-    @RequiresPermissions("bems:alarmLevel:stopLevel")
+    //@RequiresPermission("bems:alarmLevel:stopLevel")
     @AutoLog(value = "报警级别-禁用")
     public Result<String> stopLevel(@RequestParam(name = "id") Long id){
         service.stopLevel(id);

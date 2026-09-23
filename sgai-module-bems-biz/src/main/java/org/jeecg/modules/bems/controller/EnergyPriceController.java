@@ -66,7 +66,7 @@ public class EnergyPriceController extends JeecgController<EnergyPrice, IEnergyP
 	 */
 	@AutoLog(value = "能源价格管理-添加")
 	@ApiOperation(value="能源价格管理-添加", notes="能源价格管理-添加")
-	@RequiresPermissions("bems:energy_price:add")
+	//@RequiresPermission("bems:energy_price:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody EnergyPrice energyPrice) {
 		energyPriceService.save(energyPrice);
@@ -81,7 +81,7 @@ public class EnergyPriceController extends JeecgController<EnergyPrice, IEnergyP
 	 */
 	@AutoLog(value = "能源价格管理-编辑")
 	@ApiOperation(value="能源价格管理-编辑", notes="能源价格管理-编辑")
-	@RequiresPermissions("bems:energy_price:edit")
+	//@RequiresPermission("bems:energy_price:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody EnergyPrice energyPrice) {
 		energyPriceService.updateById(energyPrice);
@@ -96,7 +96,7 @@ public class EnergyPriceController extends JeecgController<EnergyPrice, IEnergyP
 	 */
 	@AutoLog(value = "能源价格管理-通过id删除")
 	@ApiOperation(value="能源价格管理-通过id删除", notes="能源价格管理-通过id删除")
-	@RequiresPermissions("bems:energy_price:delete")
+	//@RequiresPermission("bems:energy_price:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		energyPriceService.removeById(id);
@@ -111,7 +111,7 @@ public class EnergyPriceController extends JeecgController<EnergyPrice, IEnergyP
 	 */
 	@AutoLog(value = "能源价格管理-批量删除")
 	@ApiOperation(value="能源价格管理-批量删除", notes="能源价格管理-批量删除")
-	@RequiresPermissions("bems:energy_price:deleteBatch")
+	//@RequiresPermission("bems:energy_price:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.energyPriceService.removeByIds(Arrays.asList(ids.split(",")));
@@ -141,7 +141,7 @@ public class EnergyPriceController extends JeecgController<EnergyPrice, IEnergyP
     * @param request
     * @param energyPrice
     */
-    @RequiresPermissions("bems:energy_price:exportXls")
+    //@RequiresPermission("bems:energy_price:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, EnergyPrice energyPrice) {
         return super.exportXls(request, energyPrice, EnergyPrice.class, "能源价格管理");
@@ -154,7 +154,7 @@ public class EnergyPriceController extends JeecgController<EnergyPrice, IEnergyP
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:energy_price:importExcel")
+    //@RequiresPermission("bems:energy_price:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, EnergyPrice.class);
