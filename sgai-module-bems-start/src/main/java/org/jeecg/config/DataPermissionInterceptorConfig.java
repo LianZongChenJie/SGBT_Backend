@@ -58,8 +58,8 @@ public class DataPermissionInterceptorConfig {
     @Autowired
     private MybatisPlusInterceptor mybatisPlusInterceptor;
 
-//    @Autowired
-//    private BemsDataPermissionHandler dataPermissionHandler;
+    @Autowired
+    private BemsDataPermissionHandler dataPermissionHandler;
 
     /**
      * 在 Bean 初始化后执行
@@ -70,10 +70,10 @@ public class DataPermissionInterceptorConfig {
     public void addDataPermissionInterceptor() {
         try {
             // 创建 DataPermissionInterceptor 并注入自定义处理器
-//            DataPermissionInterceptor interceptor = new DataPermissionInterceptor(dataPermissionHandler);
+            DataPermissionInterceptor interceptor = new DataPermissionInterceptor(dataPermissionHandler);
 
             // 添加到拦截器链
-//            mybatisPlusInterceptor.addInnerInterceptor(interceptor);
+            mybatisPlusInterceptor.addInnerInterceptor(interceptor);
 
             // 重新排序拦截器：将 PaginationInnerInterceptor 移到最后
             reorderInterceptors();

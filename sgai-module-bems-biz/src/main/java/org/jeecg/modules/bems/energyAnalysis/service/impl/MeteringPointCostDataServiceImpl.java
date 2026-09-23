@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 
@@ -41,9 +40,6 @@ public class MeteringPointCostDataServiceImpl implements IMeteringPointCostDataS
      */
     @Override
     public void calculationCost(Long pointId, LocalDateTime hour, BigDecimal value) {
-        if (value == null || value.compareTo(BigDecimal.ZERO) < 0){
-            return;
-        }
         // 获取点位信息
         MeteringPoint point = meteringPointService.getById(pointId);
         if (point == null) {
@@ -112,7 +108,6 @@ public class MeteringPointCostDataServiceImpl implements IMeteringPointCostDataS
             day = new MeteringPointCostDataDay();
             day.setMeteringPointId(pointId);
             day.setTime(time.withHour(0));
-//            day.setTime(time.with(TemporalAdjusters.lastDayOfMonth()).withHour(0));
         }
         day.setValue(day.getValue() == null ? updValue : day.getValue().add(updValue));
         day.setCost(day.getCost() == null ? updCost : day.getCost().add(updCost));
@@ -122,7 +117,6 @@ public class MeteringPointCostDataServiceImpl implements IMeteringPointCostDataS
             month = new MeteringPointCostDataMonth();
             month.setMeteringPointId(pointId);
             month.setTime(time.withDayOfMonth(1).withHour(0));
-//            month.setTime(time.with(TemporalAdjusters.lastDayOfMonth()).withHour(0));
         }
         month.setValue(month.getValue() == null ? updValue : month.getValue().add(updValue));
         month.setCost(month.getCost() == null ? updCost : month.getCost().add(updCost));
@@ -132,7 +126,6 @@ public class MeteringPointCostDataServiceImpl implements IMeteringPointCostDataS
             year = new MeteringPointCostDataYear();
             year.setMeteringPointId(pointId);
             year.setTime(time.withDayOfYear(1).withHour(0));
-//            year.setTime(time.with(TemporalAdjusters.lastDayOfYear()).withHour(0));
         }
         year.setValue(year.getValue() == null ? updValue : year.getValue().add(updValue));
         year.setCost(year.getCost() == null ? updCost : year.getCost().add(updCost));

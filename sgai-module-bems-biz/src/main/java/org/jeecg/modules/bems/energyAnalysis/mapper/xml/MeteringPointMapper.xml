@@ -14,25 +14,25 @@
         from metering_point mr
         <where>
             <!-- 数据权限过滤：专业权限 -->
-            <!--            <if test="categoryIds != null and categoryIds.size() > 0">-->
-            <!--                and mr.category_id IN-->
-            <!--                <foreach collection="categoryIds" item="id" open="(" separator="," close=")">-->
-            <!--                    #{id}-->
-            <!--                </foreach>-->
-            <!--            </if>-->
-            <!--            <if test="categoryIds == null or categoryIds.size() == 0">
-                            and mr.category_id is null
-                        </if>-->
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                and mr.category_id IN
+                <foreach collection="categoryIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="categoryIds == null or categoryIds.size() == 0">
+                and mr.category_id is null
+            </if>
             <!-- 数据权限过滤：空间权限 -->
-            <!--            <if test="spaceIds != null and spaceIds.size() > 0">-->
-            <!--                and mr.space_id IN-->
-            <!--                <foreach collection="spaceIds" item="id" open="(" separator="," close=")">-->
-            <!--                    #{id}-->
-            <!--                </foreach>-->
-            <!--            </if>-->
-            <!--            <if test="spaceIds == null or spaceIds.size() == 0">
-                            and mr.space_id is null
-                        </if>-->
+            <if test="spaceIds != null and spaceIds.size() > 0">
+                and mr.space_id IN
+                <foreach collection="spaceIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="spaceIds == null or spaceIds.size() == 0">
+                and mr.space_id is null
+            </if>
             <if test="params.type != null and params.type != ''">
                 and mr.type = #{params.type}
             </if>
@@ -51,26 +51,26 @@
         from device
         <where>
             device_type = #{params.deviceType}
-            <!--            &lt;!&ndash; 数据权限过滤：专业权限 &ndash;&gt;-->
-            <!--            <if test="categoryIds != null and categoryIds.size() > 0">-->
-            <!--                and category_id IN-->
-            <!--                <foreach collection="categoryIds" item="id" open="(" separator="," close=")">-->
-            <!--                    #{id}-->
-            <!--                </foreach>-->
-            <!--            </if>-->
-            <!--            <if test="categoryIds == null or categoryIds.size() == 0">-->
-            <!--                and category_id is null-->
-            <!--            </if>-->
-            <!--            &lt;!&ndash; 数据权限过滤：空间权限 &ndash;&gt;-->
-            <!--            <if test="spaceIds != null and spaceIds.size() > 0">-->
-            <!--                and space_id IN-->
-            <!--                <foreach collection="spaceIds" item="id" open="(" separator="," close=")">-->
-            <!--                    #{id}-->
-            <!--                </foreach>-->
-            <!--            </if>-->
-            <!--            <if test="spaceIds == null or spaceIds.size() == 0">-->
-            <!--                and space_id is null-->
-            <!--            </if>-->
+            <!-- 数据权限过滤：专业权限 -->
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                and category_id IN
+                <foreach collection="categoryIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="categoryIds == null or categoryIds.size() == 0">
+                and category_id is null
+            </if>
+            <!-- 数据权限过滤：空间权限 -->
+            <if test="spaceIds != null and spaceIds.size() > 0">
+                and space_id IN
+                <foreach collection="spaceIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="spaceIds == null or spaceIds.size() == 0">
+                and space_id is null
+            </if>
         </where>
         ) point
         <where>

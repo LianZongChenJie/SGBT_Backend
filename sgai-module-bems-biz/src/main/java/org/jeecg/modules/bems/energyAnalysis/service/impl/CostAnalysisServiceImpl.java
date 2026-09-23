@@ -93,9 +93,7 @@ public class CostAnalysisServiceImpl implements ICostAnalysisService {
     public CostVo getTotalCost(LocalDate date, List<Long> pointIds) {
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal cost = BigDecimal.ZERO;
-
-        LocalDateTime time = date.atStartOfDay().withDayOfMonth(1).withHour(0);
-        List<MeteringPointCostDataMonth> dataList = meteringPointCostDataMonthService.findByTimeAndPointIds(time, pointIds);
+        List<MeteringPointCostDataMonth> dataList = meteringPointCostDataMonthService.findByTimeAndPointIds(date.atStartOfDay(), pointIds);
         for (MeteringPointCostDataMonth item : dataList) {
             if(item != null && item.getValue() != null && item.getCost() != null){
                 total = total.add(item.getValue());
@@ -201,8 +199,7 @@ public class CostAnalysisServiceImpl implements ICostAnalysisService {
                 if (!sum.containsKey(field)) {
                     sum.put(field, BigDecimal.ZERO);
                 }
-//                BigDecimal value = dateTimeBigDecimalMap == null ? BigDecimal.ZERO : dateTimeBigDecimalMap.getOrDefault(localDateTime, BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal value = dateTimeBigDecimalMap == null ? BigDecimal.ZERO : dateTimeBigDecimalMap.getOrDefault(localDateTime, BigDecimal.ZERO);
+                BigDecimal value = dateTimeBigDecimalMap == null ? BigDecimal.ZERO : dateTimeBigDecimalMap.getOrDefault(localDateTime, BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
                 tableData.put(field, value);
                 sum.put(field, ((BigDecimal) sum.get(field)).add(value));
             }

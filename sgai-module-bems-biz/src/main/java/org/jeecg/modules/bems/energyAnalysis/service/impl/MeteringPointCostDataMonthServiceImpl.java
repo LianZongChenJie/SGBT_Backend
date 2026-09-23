@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalAdjusters;
 import java.util.Collections;
 import java.util.List;
 
@@ -37,7 +36,6 @@ public class MeteringPointCostDataMonthServiceImpl extends ServiceImpl<MeteringP
         if(time == null || CollectionUtils.isEmpty(pointIds)){
             return Collections.emptyList();
         }
-        time=time.withDayOfMonth(1).withHour(0);
         return list(new LambdaQueryWrapper<MeteringPointCostDataMonth>()
                 .eq(MeteringPointCostDataMonth::getTime, time)
                 .in(MeteringPointCostDataMonth::getMeteringPointId, pointIds));
