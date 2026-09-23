@@ -28,7 +28,7 @@ public class MonitorSourceController {
 
     @ApiOperation(value = "监控源树", notes = "设备分类(第一层) -> 设备(第二层) 两级树，不含属性数")
     @GetMapping("/tree")
-    public Result<List<MonitorSourceCategoryVo>> tree(@RequestParam(required = false) String categoryId) {
+    public Result<List<MonitorSourceCategoryVo>> tree() {
         return Result.ok(monitorSourceService.buildMonitorSourceTree());
     }
 }
