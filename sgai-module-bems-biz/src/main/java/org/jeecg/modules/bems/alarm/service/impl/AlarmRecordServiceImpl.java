@@ -222,6 +222,9 @@ public class AlarmRecordServiceImpl extends ServiceImpl<AlarmRecordMapper, Alarm
                 continue;
             }
             List<AlarmRulePoint> rulePointList = rulePointMap.get(rule.getId());
+            if(rulePointList == null || rulePointList.isEmpty()){
+                continue;
+            }
             for (AlarmRulePoint rulePoint : rulePointList) {
                 BigDecimal v = null;
                 if(values.containsKey(rulePoint.getTimeGranularity())){
