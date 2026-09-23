@@ -9,6 +9,7 @@ import org.jeecg.modules.bems.monitorSource.service.IMonitorSourceService;
 import org.jeecg.modules.bems.monitorSource.vo.MonitorSourceCategoryVo;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class MonitorSourceController {
 
     @ApiOperation(value = "监控源树", notes = "设备分类(第一层) -> 设备(第二层) 两级树，不含属性数")
     @GetMapping("/tree")
-    public Result<List<MonitorSourceCategoryVo>> tree() {
+    public Result<List<MonitorSourceCategoryVo>> tree(@RequestParam(required = false) String categoryId) {
         return Result.ok(monitorSourceService.buildMonitorSourceTree());
     }
 }
