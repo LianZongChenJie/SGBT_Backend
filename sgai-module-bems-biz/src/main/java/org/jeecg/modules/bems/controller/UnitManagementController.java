@@ -72,7 +72,7 @@ public class UnitManagementController extends JeecgController<UnitManagement, IU
 	 */
 	@AutoLog(value = "计量单位管理-添加")
 	@ApiOperation(value="计量单位管理-添加", notes="计量单位管理-添加")
-	@RequiresPermissions("bems:unit_management:add")
+	//@RequiresPermission("bems:unit_management:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody UnitManagement unitManagement) {
 		unitManagementService.save(unitManagement);
@@ -87,7 +87,7 @@ public class UnitManagementController extends JeecgController<UnitManagement, IU
 	 */
 	@AutoLog(value = "计量单位管理-编辑")
 	@ApiOperation(value="计量单位管理-编辑", notes="计量单位管理-编辑")
-	@RequiresPermissions("bems:unit_management:edit")
+	//@RequiresPermission("bems:unit_management:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody UnitManagement unitManagement) {
 		unitManagementService.updateById(unitManagement);
@@ -102,7 +102,7 @@ public class UnitManagementController extends JeecgController<UnitManagement, IU
 	 */
 	@AutoLog(value = "计量单位管理-通过id删除")
 	@ApiOperation(value="计量单位管理-通过id删除", notes="计量单位管理-通过id删除")
-	@RequiresPermissions("bems:unit_management:delete")
+	//@RequiresPermission("bems:unit_management:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		unitManagementService.removeById(id);
@@ -117,7 +117,7 @@ public class UnitManagementController extends JeecgController<UnitManagement, IU
 	 */
 	@AutoLog(value = "计量单位管理-批量删除")
 	@ApiOperation(value="计量单位管理-批量删除", notes="计量单位管理-批量删除")
-	@RequiresPermissions("bems:unit_management:deleteBatch")
+	//@RequiresPermission("bems:unit_management:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.unitManagementService.removeByIds(Arrays.asList(ids.split(",")));
@@ -147,7 +147,7 @@ public class UnitManagementController extends JeecgController<UnitManagement, IU
     * @param request
     * @param unitManagement
     */
-    @RequiresPermissions("bems:unit_management:exportXls")
+    //@RequiresPermission("bems:unit_management:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, UnitManagement unitManagement) {
         return super.exportXls(request, unitManagement, UnitManagement.class, "计量单位管理");
@@ -160,7 +160,7 @@ public class UnitManagementController extends JeecgController<UnitManagement, IU
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:unit_management:importExcel")
+    //@RequiresPermission("bems:unit_management:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, UnitManagement.class);

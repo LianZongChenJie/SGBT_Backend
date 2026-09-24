@@ -21,7 +21,7 @@ public class EnergyAnalysisConfigController{
     /**
      * 添加
      */
-    @RequiresPermissions("bems:energyAnalysisConfig:add")
+    //@RequiresPermission("bems:energyAnalysisConfig:add")
     @PostMapping("/add")
     public Result<String> add(@RequestBody EnergyAnalysisConfig data){
         service.add(data);
@@ -31,7 +31,7 @@ public class EnergyAnalysisConfigController{
     /**
      * 修改
      */
-    @RequiresPermissions("bems:energyAnalysisConfig:update")
+    //@RequiresPermission("bems:energyAnalysisConfig:update")
     @PostMapping("/update")
     public Result<String> update(@RequestBody EnergyAnalysisConfig data){
         service.update(data);
@@ -41,7 +41,7 @@ public class EnergyAnalysisConfigController{
     /**
      * 启用
      */
-    @RequiresPermissions("bems:energyAnalysisConfig:enable")
+    //@RequiresPermission("bems:energyAnalysisConfig:enable")
     @PostMapping("/enable")
     public Result<String> enable(@RequestParam Long id){
         service.enable(id);
@@ -52,7 +52,7 @@ public class EnergyAnalysisConfigController{
      * 禁用
      * @param id 配置id
      */
-    @RequiresPermissions("bems:energyAnalysisConfig:disable")
+    //@RequiresPermission("bems:energyAnalysisConfig:disable")
     @PostMapping("/disable")
     public Result<String> disable(@RequestParam Long id){
         service.disable(id);

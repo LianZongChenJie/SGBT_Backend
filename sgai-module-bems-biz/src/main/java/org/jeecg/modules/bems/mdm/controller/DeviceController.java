@@ -56,7 +56,7 @@ public class DeviceController extends JeecgController<Device, IDeviceService> {
      */
     @AutoLog(value = "设备基础信息-仪表添加")
     @ApiOperation(value="设备基础信息-仪表添加", notes="设备基础信息-仪表添加")
-    @RequiresPermissions("bems:device:measuring:add")
+    //@RequiresPermission("bems:device:measuring:add")
     @PostMapping(value = "/measuring/add")
     public Result<String> addMeasuring(@RequestBody Device device) {
         device.setDeviceType(Device.DEVICE_TYPE_MEASURING);
@@ -66,7 +66,7 @@ public class DeviceController extends JeecgController<Device, IDeviceService> {
 
     @AutoLog(value = "设备基础信息-设备添加")
     @ApiOperation(value="设备基础信息-设备添加", notes="设备基础信息-设备添加")
-    @RequiresPermissions("bems:device:equipment:add")
+    //@RequiresPermission("bems:device:equipment:add")
     @PostMapping("/equipment/add")
     public Result<String> addEquipment(@RequestBody Device device){
         device.setDeviceType(Device.DEVICE_TYPE_EQUIPMENT);
@@ -82,7 +82,7 @@ public class DeviceController extends JeecgController<Device, IDeviceService> {
      */
     @AutoLog(value = "设备基础信息-编辑")
     @ApiOperation(value="设备基础信息-编辑", notes="设备基础信息-编辑")
-    @RequiresPermissions("bems:device:edit")
+    //@RequiresPermission("bems:device:edit")
     @RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
     public Result<String> edit(@RequestBody Device device){
         deviceService.updateById(device);
@@ -97,7 +97,7 @@ public class DeviceController extends JeecgController<Device, IDeviceService> {
      */
     @AutoLog(value = "设备基础信息-删除")
     @ApiOperation(value="设备基础信息-删除", notes="设备基础信息-删除")
-    @RequiresPermissions("bems:device:delete")
+    //@RequiresPermission("bems:device:delete")
     @DeleteMapping(value = "/delete")
     public Result<String> delete(@RequestParam(name="id",required=true) Long id){
         deviceService.removeById(id);

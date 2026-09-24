@@ -65,7 +65,7 @@ public class EnergyAttributeManagementController extends JeecgController<EnergyA
 	 */
 	@AutoLog(value = "能源属性管理-添加")
 	@ApiOperation(value="能源属性管理-添加", notes="能源属性管理-添加")
-	@RequiresPermissions("bems:energy_attribute_management:add")
+	//@RequiresPermission("bems:energy_attribute_management:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody EnergyAttributeManagement energyAttributeManagement) {
 		energyAttributeManagementService.save(energyAttributeManagement);
@@ -80,7 +80,7 @@ public class EnergyAttributeManagementController extends JeecgController<EnergyA
 	 */
 	@AutoLog(value = "能源属性管理-编辑")
 	@ApiOperation(value="能源属性管理-编辑", notes="能源属性管理-编辑")
-	@RequiresPermissions("bems:energy_attribute_management:edit")
+	//@RequiresPermission("bems:energy_attribute_management:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody EnergyAttributeManagement energyAttributeManagement) {
 		energyAttributeManagementService.updateById(energyAttributeManagement);
@@ -95,7 +95,7 @@ public class EnergyAttributeManagementController extends JeecgController<EnergyA
 	 */
 	@AutoLog(value = "能源属性管理-通过id删除")
 	@ApiOperation(value="能源属性管理-通过id删除", notes="能源属性管理-通过id删除")
-	@RequiresPermissions("bems:energy_attribute_management:delete")
+	//@RequiresPermission("bems:energy_attribute_management:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		energyAttributeManagementService.removeById(id);
@@ -110,7 +110,7 @@ public class EnergyAttributeManagementController extends JeecgController<EnergyA
 	 */
 	@AutoLog(value = "能源属性管理-批量删除")
 	@ApiOperation(value="能源属性管理-批量删除", notes="能源属性管理-批量删除")
-	@RequiresPermissions("bems:energy_attribute_management:deleteBatch")
+	//@RequiresPermission("bems:energy_attribute_management:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.energyAttributeManagementService.removeByIds(Arrays.asList(ids.split(",")));
@@ -140,7 +140,7 @@ public class EnergyAttributeManagementController extends JeecgController<EnergyA
     * @param request
     * @param energyAttributeManagement
     */
-    @RequiresPermissions("bems:energy_attribute_management:exportXls")
+    //@RequiresPermission("bems:energy_attribute_management:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, EnergyAttributeManagement energyAttributeManagement) {
         return super.exportXls(request, energyAttributeManagement, EnergyAttributeManagement.class, "能源属性管理");
@@ -153,7 +153,7 @@ public class EnergyAttributeManagementController extends JeecgController<EnergyA
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:energy_attribute_management:importExcel")
+    //@RequiresPermission("bems:energy_attribute_management:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, EnergyAttributeManagement.class);

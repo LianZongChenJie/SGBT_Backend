@@ -187,7 +187,7 @@ public class EnergyMediumManageController extends JeecgController<EnergyMediumMa
 	 */
 	@AutoLog(value = "能介管理-添加")
 	@ApiOperation(value="能介管理-添加", notes="能介管理-添加")
-    @RequiresPermissions("bems:energy_medium_manage:add")
+    //@RequiresPermission("bems:energy_medium_manage:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody EnergyMediumManage energyMediumManage) {
 		energyMediumManageService.addEnergyMediumManage(energyMediumManage);
@@ -202,7 +202,7 @@ public class EnergyMediumManageController extends JeecgController<EnergyMediumMa
 	 */
 	@AutoLog(value = "能介管理-编辑")
 	@ApiOperation(value="能介管理-编辑", notes="能介管理-编辑")
-    @RequiresPermissions("bems:energy_medium_manage:edit")
+    //@RequiresPermission("bems:energy_medium_manage:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody EnergyMediumManage energyMediumManage) {
 		energyMediumManageService.updateEnergyMediumManage(energyMediumManage);
@@ -217,7 +217,7 @@ public class EnergyMediumManageController extends JeecgController<EnergyMediumMa
 	 */
 	@AutoLog(value = "能介管理-通过id删除")
 	@ApiOperation(value="能介管理-通过id删除", notes="能介管理-通过id删除")
-    @RequiresPermissions("bems:energy_medium_manage:delete")
+    //@RequiresPermission("bems:energy_medium_manage:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		energyMediumManageService.deleteEnergyMediumManage(id);
@@ -232,7 +232,7 @@ public class EnergyMediumManageController extends JeecgController<EnergyMediumMa
 	 */
 	@AutoLog(value = "能介管理-批量删除")
 	@ApiOperation(value="能介管理-批量删除", notes="能介管理-批量删除")
-    @RequiresPermissions("bems:energy_medium_manage:deleteBatch")
+    //@RequiresPermission("bems:energy_medium_manage:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.energyMediumManageService.removeByIds(Arrays.asList(ids.split(",")));
@@ -262,7 +262,7 @@ public class EnergyMediumManageController extends JeecgController<EnergyMediumMa
     * @param request
     * @param energyMediumManage
     */
-    @RequiresPermissions("bems:energy_medium_manage:exportXls")
+    //@RequiresPermission("bems:energy_medium_manage:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, EnergyMediumManage energyMediumManage) {
 		return super.exportXls(request, energyMediumManage, EnergyMediumManage.class, "能介管理");
@@ -275,7 +275,7 @@ public class EnergyMediumManageController extends JeecgController<EnergyMediumMa
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:energy_medium_manage:importExcel")
+    //@RequiresPermission("bems:energy_medium_manage:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
 		return super.importExcel(request, response, EnergyMediumManage.class);

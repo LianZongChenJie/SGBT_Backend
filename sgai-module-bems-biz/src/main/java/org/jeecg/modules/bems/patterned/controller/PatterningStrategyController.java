@@ -21,7 +21,7 @@ public class PatterningStrategyController {
     private final IPatterningStrategyService service;
 
     @AutoLog(value = "场景控制-添加")
-    @RequiresPermissions("bems:patterningStrategy:add")
+    //@RequiresPermission("bems:patterningStrategy:add")
     @PostMapping("/add")
     public Result<String> add(@RequestBody PatterningStrategy entity){
         service.save(entity);
@@ -29,7 +29,7 @@ public class PatterningStrategyController {
     }
 
     @AutoLog(value = "场景控制-编辑")
-    @RequiresPermissions("bems:patterningStrategy:edit")
+    //@RequiresPermission("bems:patterningStrategy:edit")
     @PostMapping("/edit")
     public Result<String> edit(@RequestBody PatterningStrategy entity){
         service.updateById(entity);
@@ -42,7 +42,7 @@ public class PatterningStrategyController {
     }
 
     @AutoLog(value = "场景控制-删除")
-    @RequiresPermissions("bems:patterningStrategy:delete")
+    //@RequiresPermission("bems:patterningStrategy:delete")
     @DeleteMapping("/delete")
     public Result<String> delete(Long id){
         service.deleteById(id);
@@ -50,7 +50,7 @@ public class PatterningStrategyController {
     }
 
     @AutoLog(value = "场景控制-启用")
-    @RequiresPermissions("bems:patterningStrategy:startStrategy")
+    //@RequiresPermission("bems:patterningStrategy:startStrategy")
     @PostMapping("/startStrategy")
     public Result<String> startStrategy(@RequestBody PatterningExecutionTime data){
         service.startStrategy(data);
@@ -58,7 +58,7 @@ public class PatterningStrategyController {
     }
 
     @AutoLog(value = "场景控制-禁用")
-    @RequiresPermissions("bems:patterningStrategy:stopStrategy")
+    //@RequiresPermission("bems:patterningStrategy:stopStrategy")
     @PostMapping("/stopStrategy")
     public Result<String> stopStrategy(@RequestParam Long id){
         service.stopStrategy(id);
@@ -66,7 +66,7 @@ public class PatterningStrategyController {
     }
 
     @AutoLog(value = "场景控制-立即执行")
-//    @RequiresPermissions("bems:patterningStrategy:executionNow")
+//    //@RequiresPermission("bems:patterningStrategy:executionNow")
     @PostMapping("/executionNow")
     public Result<String> executionNow(@RequestParam Long id){
         service.executeImmediately(id);

@@ -108,18 +108,18 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
     @ApiOperation(value = "类别-权限树", notes = "根据当前用户数据权限查询类别树，父级节点会被标记为不在权限范围内")
     @GetMapping("/getPermissionTree")
     public Result<List<PermissionEquipmentCategoryTreeModel>> getPermissionTree(@RequestParam(required = false) String type){
-        // 1. 获取当前登录用户的专业权限范围
-        UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
-        Set<Long> categoryIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY);
-
-        // 3. 如果没有权限，返回空树
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return Result.OK(new ArrayList<>());
-        }
+//        // 1. 获取当前登录用户的专业权限范围
+//        UserDataScope dataScope = roleDataPermissionService.getCurrentUserDataScope();
+//        Set<Long> categoryIds = dataScope.getPermissionIds(RoleDataPermission.TYPE_CATEGORY);
+//
+//        // 3. 如果没有权限，返回空树
+//        if (categoryIds == null || categoryIds.isEmpty()) {
+//            return Result.OK(new ArrayList<>());
+//        }
 
         // 4. 构建类别权限树
         List<PermissionEquipmentCategoryTreeModel> tree = equipmentCategoryService.buildPermissionTree(
-                categoryIds, type);
+                new ArrayList<>(), type);
 
         return Result.OK(tree);
     }
@@ -311,7 +311,7 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
      */
     @AutoLog(value = "设备类别-设备添加")
     @ApiOperation(value = "设备类别-设备添加", notes = "设备类别-设备添加")
-    @RequiresPermissions("bems:equipment_category:equipment:add")
+    //@RequiresPermission("bems:equipment_category:equipment:add")
     @PostMapping(value = "/equipment/add")
     public Result<String> addForEquipment(@RequestBody EquipmentCategory equipmentCategory) {
         equipmentCategory.setType(EquipmentCategory.TYPE_EQUIPMENT);
@@ -321,7 +321,7 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
 
     @AutoLog(value = "设备类别-仪表添加")
     @ApiOperation(value = "设备类别-仪表添加", notes = "设备类别-仪表添加")
-    @RequiresPermissions("bems:equipment_category:measuring:add")
+    //@RequiresPermission("bems:equipment_category:measuring:add")
     @PostMapping("/measuring/add")
     public Result<String> addForMeasuring(@RequestBody EquipmentCategory equipmentCategory) {
         equipmentCategory.setType(EquipmentCategory.TYPE_MEASURING);
@@ -337,7 +337,7 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
      */
     @AutoLog(value = "设备类别-编辑")
     @ApiOperation(value = "设备类别-编辑", notes = "设备类别-编辑")
-    @RequiresPermissions("bems:equipment_category:edit")
+    //@RequiresPermission("bems:equipment_category:edit")
     @RequestMapping(value = "/edit", method = {RequestMethod.PUT, RequestMethod.POST})
     public Result<String> edit(@RequestBody EquipmentCategory equipmentCategory) {
         equipmentCategoryService.updateEquipmentCategory(equipmentCategory);
@@ -352,7 +352,7 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
      */
     @AutoLog(value = "设备类别-通过id删除")
     @ApiOperation(value = "设备类别-通过id删除", notes = "设备类别-通过id删除")
-    @RequiresPermissions("bems:equipment_category:delete")
+    //@RequiresPermission("bems:equipment_category:delete")
     @DeleteMapping(value = "/delete")
     public Result<String> delete(@RequestParam(name = "id", required = true) String id) {
         equipmentCategoryService.deleteEquipmentCategory(id);
@@ -367,7 +367,7 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
      */
     @AutoLog(value = "设备类别-批量删除")
     @ApiOperation(value = "设备类别-批量删除", notes = "设备类别-批量删除")
-    @RequiresPermissions("bems:equipment_category:deleteBatch")
+    //@RequiresPermission("bems:equipment_category:deleteBatch")
     @DeleteMapping(value = "/deleteBatch")
     public Result<String> deleteBatch(@RequestParam(name = "ids", required = true) String ids) {
         this.equipmentCategoryService.removeByIds(Arrays.asList(ids.split(",")));
@@ -397,7 +397,7 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
      * @param request
      * @param equipmentCategory
      */
-    @RequiresPermissions("bems:equipment_category:exportXls")
+    //@RequiresPermission("bems:equipment_category:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, EquipmentCategory equipmentCategory) {
         return super.exportXls(request, equipmentCategory, EquipmentCategory.class, "设备类别");
@@ -410,7 +410,7 @@ public class EquipmentCategoryController extends JeecgController<EquipmentCatego
      * @param response
      * @return
      */
-    @RequiresPermissions("bems:equipment_category:importExcel")
+    //@RequiresPermission("bems:equipment_category:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, EquipmentCategory.class);

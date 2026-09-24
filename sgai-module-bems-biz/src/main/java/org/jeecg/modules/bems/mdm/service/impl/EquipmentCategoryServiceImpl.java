@@ -315,16 +315,16 @@ public class EquipmentCategoryServiceImpl extends ServiceImpl<EquipmentCategoryM
      */
     @Override
     public List<PermissionEquipmentCategoryTreeModel> buildPermissionTree(Collection<Long> categoryIds, String type) {
-        // 1. 参数校验
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return Collections.emptyList();
-        }
+//        // 1. 参数校验
+//        if (categoryIds == null || categoryIds.isEmpty()) {
+//            return Collections.emptyList();
+//        }
 
         // 2. 查询所有设备类别节点（支持按 type 过滤）
         LambdaQueryWrapper<EquipmentCategory> wrapper = new LambdaQueryWrapper<EquipmentCategory>()
                 .eq(StringUtils.isNotEmpty(type), EquipmentCategory::getType, type);
         List<EquipmentCategory> allCategories = list(wrapper);
-
+        categoryIds = allCategories.stream().map(EquipmentCategory::getId).toList();
         // 3. 构建ID->EquipmentCategory的映射
         Map<Long, EquipmentCategory> categoryMap = allCategories.stream()
                 .collect(Collectors.toMap(EquipmentCategory::getId, c -> c));

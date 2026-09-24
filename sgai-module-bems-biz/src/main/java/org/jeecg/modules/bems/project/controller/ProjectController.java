@@ -89,7 +89,7 @@ public class ProjectController extends JeecgController<Project, IProjectService>
 	 */
 	@AutoLog(value = "项目管理-添加")
 	@ApiOperation(value="项目管理-添加", notes="项目管理-添加")
-	@RequiresPermissions("bems:project:add")
+	//@RequiresPermission("bems:project:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody Project project) {
 		if(project.getMeasurementTime() == null){
@@ -107,7 +107,7 @@ public class ProjectController extends JeecgController<Project, IProjectService>
 	 */
 	@AutoLog(value = "项目管理-编辑")
 	@ApiOperation(value="项目管理-编辑", notes="项目管理-编辑")
-	@RequiresPermissions("bems:project:edit")
+	//@RequiresPermission("bems:project:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody Project project) {
 		projectService.updateById(project);
@@ -122,7 +122,7 @@ public class ProjectController extends JeecgController<Project, IProjectService>
 	 */
 	@AutoLog(value = "项目管理-通过id删除")
 	@ApiOperation(value="项目管理-通过id删除", notes="项目管理-通过id删除")
-	@RequiresPermissions("bems:project:delete")
+	//@RequiresPermission("bems:project:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
 		projectService.removeById(id);
@@ -137,7 +137,7 @@ public class ProjectController extends JeecgController<Project, IProjectService>
 	 */
 	@AutoLog(value = "项目管理-批量删除")
 	@ApiOperation(value="项目管理-批量删除", notes="项目管理-批量删除")
-	@RequiresPermissions("bems:project:deleteBatch")
+	//@RequiresPermission("bems:project:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
 		this.projectService.removeByIds(Arrays.asList(ids.split(",")));
@@ -170,7 +170,7 @@ public class ProjectController extends JeecgController<Project, IProjectService>
     * @param request
     * @param project
     */
-    @RequiresPermissions("bems:project:exportXls")
+    //@RequiresPermission("bems:project:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, Project project) {
         return super.exportXls(request, project, Project.class, "项目管理");
@@ -183,7 +183,7 @@ public class ProjectController extends JeecgController<Project, IProjectService>
     * @param response
     * @return
     */
-    @RequiresPermissions("bems:project:importExcel")
+    //@RequiresPermission("bems:project:importExcel")
     @RequestMapping(value = "/importExcel", method = RequestMethod.POST)
     public Result<?> importExcel(HttpServletRequest request, HttpServletResponse response) {
         return super.importExcel(request, response, Project.class);

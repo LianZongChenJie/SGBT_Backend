@@ -24,7 +24,7 @@ public class BuildingControlImportController {
 
     @ApiOperation(value = "导入楼控设备")
     @AutoLog(value = "楼控设备导入")
-    @RequiresPermissions("bems:buildingControl:import")
+    //@RequiresPermission("bems:buildingControl:import")
     @PostMapping("/import")
     public Result<Map<String, Integer>> importBuildingControl(
             @RequestParam("file") MultipartFile file,

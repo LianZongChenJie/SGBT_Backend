@@ -18,21 +18,21 @@ import java.util.List;
 public class EnergyAnalysisBenchmarkController {
     private final IEnergyAnalysisBenchmarkService service;
 
-    @RequiresPermissions("bems:energyAnalysisBenchmark:add")
+    //@RequiresPermission("bems:energyAnalysisBenchmark:add")
     @PostMapping("/add")
     public Result<String> add(@RequestBody EnergyAnalysisBenchmark data){
         service.add(data);
         return Result.ok();
     }
 
-    @RequiresPermissions("bems:energyAnalysisBenchmark:update")
+    //@RequiresPermission("bems:energyAnalysisBenchmark:update")
     @PostMapping("/update")
     public Result<String> update(@RequestBody EnergyAnalysisBenchmark data){
         service.update(data);
         return Result.ok();
     }
 
-    @RequiresPermissions("bems:energyAnalysisBenchmark:delete")
+    //@RequiresPermission("bems:energyAnalysisBenchmark:delete")
     @DeleteMapping("/delete")
     public Result<String> delete(@RequestParam Long id){
         service.delete(id);

@@ -82,7 +82,7 @@ public class DeviceDataController {
     }
 
     @AutoLog(value = "计量设备数据修正")
-    @RequiresPermissions("bems:device_data:amend")
+    //@RequiresPermission("bems:device_data:amend")
     @PostMapping("/hourDataAmend")
     public Result<String> hourDataAmend(@RequestBody List<DeviceHourDataAmendDto> params){
         params.forEach(item -> service.dataAmend(item.getId(), item.getValue()));

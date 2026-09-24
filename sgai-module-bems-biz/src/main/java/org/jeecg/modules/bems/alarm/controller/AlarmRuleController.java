@@ -20,7 +20,7 @@ public class AlarmRuleController {
     private final IAlarmRulesService service;
 
     @PostMapping("/add")
-    @RequiresPermissions("bems:alarmRule:add")
+    //@RequiresPermission("bems:alarmRule:add")
     @AutoLog(value = "告警规则-新增")
     public Result<String> add(@RequestBody AlarmRules data){
         service.save(data);
@@ -28,7 +28,7 @@ public class AlarmRuleController {
     }
 
     @PostMapping("/edit")
-    @RequiresPermissions("bems:alarmRule:edit")
+    //@RequiresPermission("bems:alarmRule:edit")
     @AutoLog(value = "告警规则-编辑")
     public Result<String> edit(@RequestBody AlarmRules data){
         service.updateById(data);
@@ -36,7 +36,7 @@ public class AlarmRuleController {
     }
 
     @DeleteMapping("/delete")
-    @RequiresPermissions("bems:alarmRule:delete")
+    //@RequiresPermission("bems:alarmRule:delete")
     @AutoLog(value = "告警规则-删除")
     public Result<String> delete(Long id){
         service.removeById(id);
@@ -49,7 +49,7 @@ public class AlarmRuleController {
     }
 
     @PostMapping("/startRule")
-    @RequiresPermissions("bems:alarmRule:startRule")
+    //@RequiresPermission("bems:alarmRule:startRule")
     @AutoLog(value = "告警规则-启用")
     public Result<String> startRule(Long id){
         service.startRule(id);
@@ -57,7 +57,7 @@ public class AlarmRuleController {
     }
 
     @PostMapping("/stopRule")
-    @RequiresPermissions("bems:alarmRule:stopRule")
+    //@RequiresPermission("bems:alarmRule:stopRule")
     @AutoLog(value = "告警规则-禁用")
     public Result<String> stopRule(Long id){
         service.stopRule(id);

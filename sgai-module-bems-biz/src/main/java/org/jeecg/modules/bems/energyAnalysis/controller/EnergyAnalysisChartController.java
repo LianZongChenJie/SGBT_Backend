@@ -19,21 +19,21 @@ public class EnergyAnalysisChartController {
 
     private final IEnergyAnalysisChartService service;
 
-    @RequiresPermissions("bems:energyAnalysis:chart:add")
+    //@RequiresPermission("bems:energyAnalysis:chart:add")
     @PostMapping("/add")
     public Result<String> add(@RequestBody EnergyAnalysisChart data){
         service.add(data);
         return Result.ok();
     }
 
-    @RequiresPermissions("bems:energyAnalysis:chart:update")
+    //@RequiresPermission("bems:energyAnalysis:chart:update")
     @PostMapping("/update")
     public Result<String> update(@RequestBody EnergyAnalysisChart data){
         service.update(data);
         return Result.ok();
     }
 
-    @RequiresPermissions("bems:energyAnalysis:chart:delete")
+    //@RequiresPermission("bems:energyAnalysis:chart:delete")
     @DeleteMapping("/delete")
     public Result<String> delete(@RequestParam Long id){
         service.delete(id);
