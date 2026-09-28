@@ -1,6 +1,8 @@
 package org.jeecg.modules.bems.energyAnalysis.service.impl;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jeecg.boot.starter.lock.client.RedissonLockClient;
 import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.modules.bems.energyAnalysis.entity.*;
 import org.jeecg.modules.bems.energyAnalysis.service.*;
@@ -15,6 +17,7 @@ import java.util.Map;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class MeteringPointCostDataServiceImpl implements IMeteringPointCostDataService {
 
     private final IMeteringPointService meteringPointService;
@@ -31,6 +34,8 @@ public class MeteringPointCostDataServiceImpl implements IMeteringPointCostDataS
 
     private final IMeteringPointCostDataYearService meteringPointCostDataYearService;
 
+    private final RedissonLockClient redissonLockClient;
+
     /**
      * 成本计算
      *
@@ -40,38 +45,52 @@ public class MeteringPointCostDataServiceImpl implements IMeteringPointCostDataS
      */
     @Override
     public void calculationCost(Long pointId, LocalDateTime hour, BigDecimal value) {
-        // 获取点位信息
-        MeteringPoint point = meteringPointService.getById(pointId);
-        if (point == null) {
-            return;
+        // 按「点位 + 小时」粒度加锁，避免定时任务与 MQ 消息并发计算同一小时成本导致累计值竞态
+        String lockKey = "lock:bems:cost:calculate:" + pointId + ":" + hour.withMinute(0).withSecond(0).withNano(0);
+        boolean locked = false;
+        try {
+            locked = redissonLockClient.tryLock(lockKey, 10, 60);
+            if (!locked) {
+                log.warn("成本计算加锁失败，跳过本次：pointId={}, hour={}", pointId, hour);
+                return;
+            }
+            // 获取点位信息
+            MeteringPoint point = meteringPointService.getById(pointId);
+            if (point == null) {
+                return;
+            }
+            Long categoryId = point.getCategoryId();
+            EnergyPricingConfig config = energyPricingConfigService.getByCategoryId(categoryId);
+            if (config == null) {
+                return;
+            }
+            BigDecimal cost = BigDecimal.ZERO;
+            switch (config.getBillingWay()) {
+                case "1":
+                    // 峰谷分时计价
+                    Map<String, BigDecimal> pvts = config.formatPVTS();
+                    cost = pvts.getOrDefault(hour.format(EnergyPricingConfig.filedForMatter), BigDecimal.ZERO).multiply(value);
+                    break;
+                case "2":
+                    // 固定计价
+                    cost = config.getFixedUnitPrice().multiply(value);
+                    break;
+                case "3":
+                    // 阶梯计价
+                    List<LadderPricing> ladderPricings = config.formatLadderPricing();
+                    // 获取截止到上个小时能耗总量
+                    cost = CostCalculationUtil.calculationLadderPricing(ladderPricings, getHistoryDosage(pointId, hour), value);
+                    break;
+                default:
+                    throw new JeecgBootException("未定义的能源价格计算方式！");
+            }
+            // 更新成本信息
+            saveCost(pointId, hour, value, cost);
+        } finally {
+            if (locked) {
+                redissonLockClient.unlock(lockKey);
+            }
         }
-        Long categoryId = point.getCategoryId();
-        EnergyPricingConfig config = energyPricingConfigService.getByCategoryId(categoryId);
-        if (config == null) {
-            return;
-        }
-        BigDecimal cost = BigDecimal.ZERO;
-        switch (config.getBillingWay()) {
-            case "1":
-                // 峰谷分时计价
-                Map<String, BigDecimal> pvts = config.formatPVTS();
-                cost = pvts.getOrDefault(hour.format(EnergyPricingConfig.filedForMatter), BigDecimal.ZERO).multiply(value);
-                break;
-            case "2":
-                // 固定计价
-                cost = config.getFixedUnitPrice().multiply(value);
-                break;
-            case "3":
-                // 阶梯计价
-                List<LadderPricing> ladderPricings = config.formatLadderPricing();
-                // 获取截止到上个小时能耗总量
-                cost = CostCalculationUtil.calculationLadderPricing(ladderPricings, getHistoryDosage(pointId, hour), value);
-                break;
-            default:
-                throw new JeecgBootException("未定义的能源价格计算方式！");
-        }
-        // 更新成本信息
-        saveCost(pointId, hour, value, cost);
     }
 
     /**

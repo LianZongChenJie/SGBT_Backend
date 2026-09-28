@@ -121,7 +121,6 @@ public class MeteringPointDataServiceImpl implements IMeteringPointDataService {
 
     @Override
     public void calculateValue(LocalDateTime hour){
-        // TODO 根据小时进行加锁，防止重复计算,根据点位类别，进行多线程操作
         if(hour == null){
             return;
         }
@@ -152,19 +151,23 @@ public class MeteringPointDataServiceImpl implements IMeteringPointDataService {
             if(StringUtil.isEmpty(formula)) {
                 continue;
             }
-
-            // 更新小时值
-            hourData.put(rule.getNodeCode(),Jexl3Util.getValue(formula,hourData));
-            hourDataService.save(rule.getId(),hour, hourData.get(rule.getNodeCode()));
-            // 更新日
-            dayData.put(rule.getNodeCode(),Jexl3Util.getValue(formula, dayData));
-            dayDataService.save(rule.getId(),hour.withHour(0),dayData.get(rule.getNodeCode()));
-            // 更新月
-            monthData.put(rule.getNodeCode(),Jexl3Util.getValue(formula,monthData));
-            monthDataService.save(rule.getId(),hour.withDayOfMonth(1).withHour(0),monthData.get(rule.getNodeCode()));
-            // 更新年
-            yearData.put(rule.getNodeCode(),Jexl3Util.getValue(formula,yearData));
-            yearDataService.save(rule.getId(),hour.withDayOfMonth(1).withMonth(1).withHour(0),yearData.get(rule.getNodeCode()));
+            // 单个点位计算失败不影响其他点位，记录日志后继续
+            try {
+                // 更新小时值
+                hourData.put(rule.getNodeCode(),Jexl3Util.getValue(formula,hourData));
+                hourDataService.save(rule.getId(),hour, hourData.get(rule.getNodeCode()));
+                // 更新日
+                dayData.put(rule.getNodeCode(),Jexl3Util.getValue(formula, dayData));
+                dayDataService.save(rule.getId(),hour.withHour(0),dayData.get(rule.getNodeCode()));
+                // 更新月
+                monthData.put(rule.getNodeCode(),Jexl3Util.getValue(formula,monthData));
+                monthDataService.save(rule.getId(),hour.withDayOfMonth(1).withHour(0),monthData.get(rule.getNodeCode()));
+                // 更新年
+                yearData.put(rule.getNodeCode(),Jexl3Util.getValue(formula,yearData));
+                yearDataService.save(rule.getId(),hour.withDayOfMonth(1).withMonth(1).withHour(0),yearData.get(rule.getNodeCode()));
+            } catch (Exception e) {
+                log.error("计量点位能耗计算失败：点位id={}, 时间={}", rule.getId(), hour, e);
+            }
         }
     }
 
