@@ -110,9 +110,9 @@ public class SpaceWorkImpl implements IPspaceWork {
     @Override
     public int refreshRealValueByNumericAcquisition(String type) {
         // 1.只查询采集编码为纯数字的属性（兼容 MySQL 的 REGEXP）
+        List<String> zxygzdns = List.of("\\ZBLN\\ELDB\\B2_ZXYGZDN", "\\ZBLN\\ELDB\\B1_ZXYGZDN");
         List<DeviceAttribute> attributes = new ArrayList<>();
         if (type.equals("ELDB")) {
-            List<String> zxygzdns = List.of("\\ZBLN\\ELDB\\B2_ZXYGZDN", "\\ZBLN\\ELDB\\B1_ZXYGZDN");
             attributes = deviceAttributeService.list(
                     new LambdaQueryWrapper<DeviceAttribute>()
                             .in(DeviceAttribute::getAttributeCode, zxygzdns)
@@ -122,6 +122,7 @@ public class SpaceWorkImpl implements IPspaceWork {
         } else {
             attributes = deviceAttributeService.list(
                     new LambdaQueryWrapper<DeviceAttribute>()
+                            .notIn(DeviceAttribute::getAttributeCode, zxygzdns)
                             .isNotNull(DeviceAttribute::getAcquisitionCoding)
                             .ne(DeviceAttribute::getAcquisitionCoding, "")
                             .apply("acquisition_coding REGEXP '^[0-9]+$'"));
