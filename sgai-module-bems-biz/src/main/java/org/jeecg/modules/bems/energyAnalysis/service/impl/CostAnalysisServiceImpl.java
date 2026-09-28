@@ -93,6 +93,8 @@ public class CostAnalysisServiceImpl implements ICostAnalysisService {
     public CostVo getTotalCost(LocalDate date, List<Long> pointIds) {
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal cost = BigDecimal.ZERO;
+        //日期取这个月的第一天
+        date = date.withDayOfMonth(1);
         List<MeteringPointCostDataMonth> dataList = meteringPointCostDataMonthService.findByTimeAndPointIds(date.atStartOfDay(), pointIds);
         for (MeteringPointCostDataMonth item : dataList) {
             if(item != null && item.getValue() != null && item.getCost() != null){

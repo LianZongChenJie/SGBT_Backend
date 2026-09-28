@@ -1,7 +1,6 @@
 package org.jeecg.modules.bems.energyAnalysis.service;
 
 import org.jeecg.modules.bems.energyAnalysis.dto.MeteringPointChatDto;
-import org.jeecg.modules.bems.energyAnalysis.entity.MeteringPoint;
 import org.jeecg.modules.bems.energyAnalysis.entity.MeteringPointDataHour;
 import org.jeecg.modules.bems.energyAnalysis.vo.Chat;
 import org.jeecg.modules.bems.energyAnalysis.vo.Table;
@@ -62,6 +61,7 @@ public interface IMeteringPointDataService {
      * 查询堆叠柱状图数据
      */
     Chat findStackedColumnChart(MeteringPointChatDto param);
-
     List<MeteringPointDataHour> getHourLast();
+
+    List<MeteringPointDataHour> getHourLast(LocalDateTime current);
 }
