@@ -118,6 +118,7 @@ public class CostAnalysisServiceImpl implements ICostAnalysisService {
         // 获取各点位信息
         List<MeteringPoint> points = meteringPointService.getByIds(pointIds);
         // 获取点位成本数据
+        date = date.withDayOfMonth(1);
         Map<Long,BigDecimal> dataMap = meteringPointCostDataMonthService.findByTimeAndPointIds(date.atStartOfDay(), pointIds)
                 .stream()
                 .collect(Collectors.groupingBy(MeteringPointCostDataMonth::getMeteringPointId,
