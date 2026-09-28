@@ -28,4 +28,10 @@ public class EnergySupplyOverviewVO {
 
     @ApiModelProperty("光伏产电")
     private BigDecimal photovoltaicPowerGeneration;
+
+    @ApiModelProperty("供暖覆盖")
+    private BigDecimal heatingCoverage;
+
+    @ApiModelProperty("供给家庭")
+    private BigDecimal supplyToHouseholds;
 }

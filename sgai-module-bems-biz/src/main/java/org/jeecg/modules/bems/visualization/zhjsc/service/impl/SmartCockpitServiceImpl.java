@@ -218,6 +218,7 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
         }
         return result;
     }
+
     /**
      * 组装环境监测结果，只输出当前传入的一个周期
      */
@@ -264,6 +265,7 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
 
         return result;
     }
+
     @Override
     public OperationStatusKeyEquipmentVO operationStatusKeyEquipment() {
 
@@ -375,7 +377,7 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
     }
 
     @Override
-    public List<SteamElectricityProductionVO> steamElectricityProduction() {
+    public List<SteamElectricityProductionVO> dailyProductionData() {
         // 当日时间范围
         LocalDateTime[] localDateTimes = DateRangeUtils.currentDay();
         List<ProductionItemVO> steamProductionData = getSteamProductionData(localDateTimes);
@@ -500,16 +502,12 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
     @Override
     public CarbonFootprintVO carbonFootprint() {
         // ==================== 换算系数 ====================
-        // 单棵树年固碳量 (kg CO2/棵/年)
         final BigDecimal TREE_ANNUAL_CO2_KG = new BigDecimal("18.3");
-        // 树木寿命 (年)
         final BigDecimal TREE_LIFESPAN_YEARS = new BigDecimal("40");
-        // 绿电转换系数：1 tCO2e 对应绿电量 (MWh)
         final BigDecimal GREEN_ELEC_MWH_PER_TCO2 = new BigDecimal("1.25");
-        // 绿植固碳系数：1 tCO2e 对应地上生物量 (吨)
         final BigDecimal BIOMASS_TON_PER_TCO2 = new BigDecimal("2.0");
-        // 再利用能源减排系数（按需调整，默认 1.0）
         final BigDecimal REUSE_ENERGY_FACTOR = BigDecimal.ONE;
+        final BigDecimal TEN_THOUSAND = new BigDecimal("10000");
 
         // ==================== 碳排放总量 ====================
         BigDecimal totalCarbonEmissions = getTotalCarbonEmissions();
@@ -517,62 +515,158 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
             totalCarbonEmissions = BigDecimal.ZERO;
         }
 
-        // ==================== 1. 等效植树林（棵） ====================
-        // 总碳排(kg) / (单树年固碳 × 寿命)
+        // ==================== 1. 等效植树林（万株） ====================
         BigDecimal totalCarbonKg = totalCarbonEmissions.multiply(new BigDecimal("1000"));
         BigDecimal treeFactor = TREE_ANNUAL_CO2_KG.multiply(TREE_LIFESPAN_YEARS);
         BigDecimal equivalentPlantations = totalCarbonKg.divide(treeFactor, 2, RoundingMode.HALF_UP);
+        // 转换为万株
+        BigDecimal equivalentPlantationsWan = equivalentPlantations.divide(TEN_THOUSAND, 2, RoundingMode.HALF_UP);
 
-        // ==================== 2. 再利用能源减排量（tCO2e） ====================
+        // ==================== 2. 再利用能源减排量（万吨） ====================
         BigDecimal reuseEnergySavings = totalCarbonEmissions
                 .multiply(REUSE_ENERGY_FACTOR)
                 .setScale(2, RoundingMode.HALF_UP);
+        // 转换为万吨
+        BigDecimal reuseEnergySavingsWan = reuseEnergySavings.divide(TEN_THOUSAND, 2, RoundingMode.HALF_UP);
 
-        // ==================== 3. 绿电减排（MWh） ====================
+        // ==================== 3. 绿电减排量（万吨） ====================
+        // 假设这里的绿电减排量指的是对应的二氧化碳减排量（tCO2e）
         BigDecimal greenPowerEmissionReduction = totalCarbonEmissions
                 .multiply(GREEN_ELEC_MWH_PER_TCO2)
                 .setScale(2, RoundingMode.HALF_UP);
+        // 转换为万吨
+        BigDecimal greenPowerEmissionReductionWan = greenPowerEmissionReduction.divide(TEN_THOUSAND, 2, RoundingMode.HALF_UP);
 
-        // ==================== 4. 绿植固碳（吨地上生物量） ====================
+        // ==================== 4. 绿植固碳量（吨） ====================
         BigDecimal greenPlantsSequestration = totalCarbonEmissions
                 .multiply(BIOMASS_TON_PER_TCO2)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        // ==================== 碳排放总量（万吨） ====================
+        BigDecimal totalCarbonEmissionsWan = totalCarbonEmissions.divide(TEN_THOUSAND, 2, RoundingMode.HALF_UP);
+
         return new CarbonFootprintVO(
-                totalCarbonEmissions,
-                equivalentPlantations,
-                reuseEnergySavings,
-                greenPowerEmissionReduction,
+                totalCarbonEmissionsWan,
+                equivalentPlantationsWan,
+                reuseEnergySavingsWan,
+                greenPowerEmissionReductionWan,
                 greenPlantsSequestration);
     }
 
     @Override
     public EnergySupplyOverviewVO energySupplyOverview() {
+
+        /** 蒸汽焓值折算系数：1 吨蒸汽 ≈ 0.7 MW 热能 */
+        BigDecimal STEAM_TO_MW_FACTOR = new BigDecimal("0.7");
+        /** 余热热水量折算系数：1 MW ≈ 100 吨/小时 */
+        BigDecimal WASTE_HEAT_WATER_FACTOR = new BigDecimal("100");
+        /** 供暖覆盖面积折算系数：1 MW ≈ 18000 平米 */
+        BigDecimal HEATING_COVERAGE_FACTOR = new BigDecimal("18000");
+        /** 供热户数折算系数：1 MW ≈ 180 户 */
+        BigDecimal SUPPLY_HOUSEHOLDS_FACTOR = new BigDecimal("180");
+
+        // 外供蒸汽量 单位：吨/小时
         BigDecimal externalSteamSupplyVolume = getExternalSteamSupplyVolume();
-        BigDecimal convertHeatEnergy = calcMWFromTon(externalSteamSupplyVolume);
-        BigDecimal wasteHeatHotWater = getWasteHeatHotWater();
+        // 光伏产电 单位：kWh
         BigDecimal photovoltaicPowerGeneration = getPhotovoltaicPowerGeneration();
+        // 换算热能 单位：MW（由外供蒸汽量折算）
+        BigDecimal convertHeatEnergy = calcMWFromTon(externalSteamSupplyVolume, STEAM_TO_MW_FACTOR);
+        // 以下 4 个指标均由 convertHeatEnergy 派生
+        // 余热热水 单位：吨/小时
+        BigDecimal wasteHeatHotWater = getWasteHeatHotWater(convertHeatEnergy, WASTE_HEAT_WATER_FACTOR);
+        // 供暖覆盖 单位：平米（取整）
+        BigDecimal heatingCoverage = getHeatingCoverage(convertHeatEnergy, HEATING_COVERAGE_FACTOR);
+        // 供给家庭 单位：户（取整）
+        BigDecimal supplyToHouseholds = getSupplyToHouseholds(convertHeatEnergy, SUPPLY_HOUSEHOLDS_FACTOR);
+
         return new EnergySupplyOverviewVO(
                 externalSteamSupplyVolume,
                 convertHeatEnergy,
                 wasteHeatHotWater,
-                photovoltaicPowerGeneration);
+                photovoltaicPowerGeneration,
+                heatingCoverage,
+                supplyToHouseholds);
     }
+
+    /**
+     * 外供蒸汽量：锅炉蒸汽流量历史累计值
+     *
+     * @return 吨/小时，保留 2 位小数；无数据返回 0
+     */
+    private BigDecimal getExternalSteamSupplyVolume() {
+        BigDecimal total = deviceAttributeHistoryMapper.sumLatestValueByAttributeName("锅炉蒸汽流量");
+        return scale2(defaultZero(total));
+    }
+
+    /**
+     * 根据外供蒸汽量折算热能
+     *
+     * @param flowTonPerHou 蒸汽流量（吨/小时）
+     * @return 热能（MW），保留 2 位小数
+     */
+    public BigDecimal calcMWFromTon(BigDecimal flowTonPerHou, BigDecimal STEAM_TO_MW_FACTOR) {
+        return scale2(defaultZero(flowTonPerHou).multiply(STEAM_TO_MW_FACTOR));
+    }
+
+    /**
+     * 余热热水量：由折算热能派生
+     *
+     * @param convertHeatEnergy 折算热能（MW）
+     * @return 吨/小时，保留 2 位小数
+     */
+    private BigDecimal getWasteHeatHotWater(BigDecimal convertHeatEnergy, BigDecimal WASTE_HEAT_WATER_FACTOR) {
+        return scale2(defaultZero(convertHeatEnergy).multiply(WASTE_HEAT_WATER_FACTOR));
+    }
+
+
+    /**
+     * 供暖覆盖面积：由折算热能派生
+     *
+     * @param convertHeatEnergy 折算热能（MW）
+     * @return 平米（取整）
+     */
+    private BigDecimal getHeatingCoverage(BigDecimal convertHeatEnergy, BigDecimal HEATING_COVERAGE_FACTOR) {
+        return defaultZero(convertHeatEnergy)
+                .multiply(HEATING_COVERAGE_FACTOR)
+                .setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 供热户数：由折算热能派生
+     *
+     * @param convertHeatEnergy 折算热能（MW）
+     * @return 户（取整）
+     */
+    private BigDecimal getSupplyToHouseholds(BigDecimal convertHeatEnergy, BigDecimal SUPPLY_HOUSEHOLDS_FACTOR) {
+        return defaultZero(convertHeatEnergy)
+                .multiply(SUPPLY_HOUSEHOLDS_FACTOR)
+                .setScale(0, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal defaultZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private static BigDecimal scale2(BigDecimal value) {
+        return defaultZero(value).setScale(2, RoundingMode.HALF_UP);
+    }
+
     private LocalDateTime[] resolveRange(String normalized) {
         return switch (normalized) {
-            case DateRangeUtils.PERIOD_WEEK  -> DateRangeUtils.currentWeek();
-            case DateRangeUtils.PERIOD_MONTH-> DateRangeUtils.currentMonth();
-            case DateRangeUtils.PERIOD_YEAR  -> DateRangeUtils.currentYear();
+            case DateRangeUtils.PERIOD_WEEK -> DateRangeUtils.currentWeek();
+            case DateRangeUtils.PERIOD_MONTH -> DateRangeUtils.currentMonth();
+            case DateRangeUtils.PERIOD_YEAR -> DateRangeUtils.currentYear();
             default -> throw new IllegalArgumentException("period 非法: " + normalized);
         };
     }
+
     /**
      * 按“天”聚合，返回区间内每一天的值，无数据补 0
      *
-     * @param attrName    属性名（日发电量 / 直流侧累计发电量）
-     * @param start       起始时间
-     * @param end         结束时间
-     * @param normalized  WEEK / MONTH / YEAR
+     * @param attrName   属性名（日发电量 / 直流侧累计发电量）
+     * @param start      起始时间
+     * @param end        结束时间
+     * @param normalized WEEK / MONTH / YEAR
      */
     private List<PowerTrendVO> getDailyTrend(String attrName,
                                              LocalDateTime start,
@@ -602,11 +696,13 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
         }
         return result;
     }
+
     private ChartDataVO buildChartData(List<PowerTrendVO> list) {
         return new ChartDataVO(
                 list.stream().map(PowerTrendVO::getBucketTime).collect(Collectors.toList()),
                 list.stream().map(PowerTrendVO::getTotalValue).collect(Collectors.toList()));
     }
+
     public ProductionOverviewVO productionOverview(String period) {
         //风电、光伏两种类型设备产能折线图；X轴为时间，Y轴为发电量,折线图 (本周、本月、本年) 统计
         //日发电量 —— 统计当日光伏产电
@@ -665,25 +761,6 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
         return ranges;
     }
 
-    private BigDecimal getExternalSteamSupplyVolume() {
-        //锅炉蒸汽流量 ->统计出总量 ->外供蒸汽量
-        BigDecimal total = deviceAttributeHistoryMapper.sumLatestValueByAttributeName("锅炉蒸汽流量");
-        return total.setScale(2, RoundingMode.HALF_UP);
-    }
-
-    /**
-     * 根据外供蒸汽量（吨）计算热能
-     *
-     * @param flowTonPerHour 蒸汽流量 t/h
-     * @return 热能 MW
-     */
-    public BigDecimal calcMWFromTon(BigDecimal flowTonPerHour) {
-        return flowTonPerHour.multiply(new BigDecimal(0.7)).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal getWasteHeatHotWater() {
-        return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-    }
 
     private BigDecimal getPhotovoltaicPowerGeneration() {
         //光伏产电

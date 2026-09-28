@@ -30,7 +30,8 @@ public class MeteringPointCostDataUpdateJob {
      */
     private static final String LOCK_KEY = "lock:bems:meteringPointCostDataUpdate";
 
-    @Scheduled(cron = "0 0 * * * ?")
+        @Scheduled(cron = "0 0 * * * ?")
+//    @PostConstruct
     public void meteringPointCostDataUpdate() {
         boolean locked = false;
         try {

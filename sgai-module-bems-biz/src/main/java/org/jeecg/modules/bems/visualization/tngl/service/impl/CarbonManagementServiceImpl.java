@@ -145,24 +145,25 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
         String attribute_name = "_标况体积流量";
         List<Map<String, Object>> list = deviceAttributeHistoryMapper.sumLatestValueGroupByAttributeName(attribute_name);
 
-        // 天然气简化排放因子：kg CO₂ / Nm³
-        BigDecimal emissionFactor = new BigDecimal("1.92");
+        // 天然气热值（用于计算能耗 KJ），单位：KJ/Nm³
+        // 天然气低位发热量通常在 35000 ~ 36000 KJ/Nm³ 之间，这里按 35500 估算，请根据实际业务替换
+        BigDecimal calorificValue = new BigDecimal("35500");
 
         List<BoilerEnergyCarbonConversionVO> result = new ArrayList<>();
         for (Map<String, Object> row : list) {
             // 标况体积消耗量（Nm³）
             BigDecimal value = toBigDecimal(row.get("totalValue"));
 
-            // 碳排放量（kg CO₂）= 标况体积消耗量 × 排放因子
-            BigDecimal carbonEmission = value.multiply(emissionFactor)
-                    .setScale(2, RoundingMode.HALF_UP);
+            // 计算能耗转换量（KJ）= 标况体积消耗量 × 天然气热值
+            BigDecimal energyKJ = value.multiply(calorificValue)
+                    .setScale(0, RoundingMode.HALF_UP); //
 
             // 设备名称转换：燃气表1_标况体积流量 -> 锅炉1
             String attributeName = String.valueOf(row.get("attributeName"));
             attributeName = attributeName.replaceAll(attribute_name, "");
             attributeName = attributeName.replaceAll("燃气表", "锅炉");
 
-            result.add(new BoilerEnergyCarbonConversionVO(attributeName, value, carbonEmission));
+            result.add(new BoilerEnergyCarbonConversionVO(attributeName, value, energyKJ));
         }
         return result;
     }
@@ -200,7 +201,8 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
         }
         // 属性名关键字
         String waterKey = "锅炉给水流量";
-        String steamKey = "蒸汽累计流量";;
+        String steamKey = "蒸汽累计流量";
+        ;
 
         // 4. 一次性查出这些锅炉下所有属性，避免循环查库
         List<Long> boilerIds = boilers.stream().map(Device::getId).collect(Collectors.toList());
@@ -351,10 +353,14 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
 
 
     private SeriesVO buildSeries(String name, List<PowerTrendVO> list, String unit) {
+        List<String> timeList = list.stream()
+                .map(PowerTrendVO::getBucketTime)
+                .collect(Collectors.toList());
+
         List<BigDecimal> data = list.stream()
                 .map(PowerTrendVO::getTotalValue)
                 .collect(Collectors.toList());
-        return new SeriesVO(name, data, unit);
+        return new SeriesVO(name, timeList, data, unit);
     }
 
     /**
@@ -371,6 +377,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 .findFirst()
                 .orElse(null);
     }
+
     /**
      * 光伏属性名
      */
@@ -390,7 +397,6 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
         BigDecimal totalPowerGeneration = calculateTotalGeneration(cumulativeList);
 
         // 3. 计算碳排放量 (kg CO2) = 发电量(kWh) × 碳排因子
-        // 注意：TODO 如果发电量单位是 MWh，需要先 ×1000 转为 kWh
         BigDecimal carbonEmission = totalPowerGeneration
                 .multiply(ELECTRICITY_CARBON_FACTOR)
                 .setScale(2, RoundingMode.HALF_UP);

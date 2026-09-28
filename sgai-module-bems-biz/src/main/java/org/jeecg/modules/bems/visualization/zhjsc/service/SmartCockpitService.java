@@ -18,7 +18,7 @@ public interface SmartCockpitService {
 
     AlarmListVO alarmList();
 
-    List<SteamElectricityProductionVO> steamElectricityProduction();
+    List<SteamElectricityProductionVO> dailyProductionData();
 
     CarbonFootprintVO carbonFootprint();
 

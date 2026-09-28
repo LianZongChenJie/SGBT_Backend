@@ -187,6 +187,7 @@ public class SpaceWorkImpl implements IPspaceWork {
 //            //8.正向有功总电能写入data_real 因alertDeviceEldb方法中已经有了
 //            this.saveDataReal(newAttributes, dataTime);
             //7.存储告警记录 耗电特殊处理
+            log.info("存储告警记录 耗电特殊处理");
             this.alertDeviceEldb(newAttributes);
         } else {
             //7.存储告警记录 通用存储

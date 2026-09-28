@@ -36,10 +36,10 @@ public class SmartCockpitController {
      * 生产数据
      * 各个能源系统的当日生产数据（累计统计当日），例如蒸汽产量、电能产量
      */
-    @ApiOperation(value = "蒸汽产量,电能产量", notes = "各个能源系统的当日生产数据（累计统计当日）")
-    @GetMapping("/steamElectricityProduction")
-    public Result<List<SteamElectricityProductionVO>> steamElectricityProduction() {
-        return Result.ok(smartCockpitService.steamElectricityProduction());
+    @ApiOperation(value = "各个能源系统的当日生产数据", notes = "各个能源系统的当日生产数据（累计统计当日）")
+    @GetMapping("/dailyProductionData")
+    public Result<List<SteamElectricityProductionVO>> dailyProductionData() {
+        return Result.ok(smartCockpitService.dailyProductionData());
     }
     /**
      * 供能概况
