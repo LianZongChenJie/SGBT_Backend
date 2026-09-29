@@ -20,6 +20,9 @@ public class AlarmsByTypeNumberVO {
     @ApiModelProperty("周期：本周/本月/本年")
     private String type;
 
+    @ApiModelProperty("总次数")
+    private Long size;
+
     @ApiModelProperty("各告警类别计数")
     private List<AlarmCountVO> data;
 }

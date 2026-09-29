@@ -4,6 +4,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.config.shiro.IgnoreAuth;
 import org.jeecg.modules.bems.visualization.ahgl.service.EhsManagementService;
 import org.jeecg.modules.bems.visualization.ahgl.vo.AlarmsByTypeNumberVO;
 import org.jeecg.modules.bems.visualization.ahgl.vo.DividedIntoSixVO;

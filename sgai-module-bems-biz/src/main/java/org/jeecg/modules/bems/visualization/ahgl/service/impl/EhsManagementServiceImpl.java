@@ -327,9 +327,15 @@ public class EhsManagementServiceImpl implements EhsManagementService {
         LocalDateTime[] year = currentYear();
 
         List<AlarmsByTypeNumberVO> result = new ArrayList<>();
-        result.add(new AlarmsByTypeNumberVO(PERIOD_WEEK, getAlarmRecordCount(week)));
-        result.add(new AlarmsByTypeNumberVO(PERIOD_MONTH, getAlarmRecordCount(month)));
-        result.add(new AlarmsByTypeNumberVO(PERIOD_YEAR, getAlarmRecordCount(year)));
+        long week_sum = getAlarmRecordCount(week).stream().mapToLong(v -> v.getCount())
+                .sum();
+        long month_sum = getAlarmRecordCount(month).stream().mapToLong(v -> v.getCount())
+                .sum();
+        long year_sum = getAlarmRecordCount(year).stream().mapToLong(v -> v.getCount())
+                .sum();
+        result.add(new AlarmsByTypeNumberVO(PERIOD_WEEK, week_sum, getAlarmRecordCount(week)));
+        result.add(new AlarmsByTypeNumberVO(PERIOD_MONTH, month_sum, getAlarmRecordCount(month)));
+        result.add(new AlarmsByTypeNumberVO(PERIOD_YEAR, year_sum, getAlarmRecordCount(year)));
         return result;
     }
 
