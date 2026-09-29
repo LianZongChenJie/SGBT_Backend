@@ -27,7 +27,7 @@ import java.util.Objects;
  */
 @Api(tags = "安环管理数据接口")
 @RestController
-@RequestMapping("/bems/visualization/ahgl")
+@RequestMapping("/visualization/ahgl")
 public class EhsManagementController {
 
     @Autowired

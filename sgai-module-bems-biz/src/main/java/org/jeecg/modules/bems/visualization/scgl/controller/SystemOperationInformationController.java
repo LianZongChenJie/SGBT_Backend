@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Api(tags = "生产管理数据接口")
 @RestController
-@RequestMapping("/bems/visualization/scgl")
+@RequestMapping("/visualization/scgl")
 public class SystemOperationInformationController {
     @Autowired
     private SystemOperationInformationService systemOperationInformationService;

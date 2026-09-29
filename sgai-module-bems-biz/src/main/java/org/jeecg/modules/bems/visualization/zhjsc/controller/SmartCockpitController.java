@@ -25,7 +25,7 @@ import java.util.List;
  */
 @Api(tags = "智慧驾驶舱数据接口")
 @RestController
-@RequestMapping("/bems/visualization/zhjsc")
+@RequestMapping("/visualization/zhjsc")
 public class SmartCockpitController {
 
     @Autowired

@@ -19,7 +19,7 @@ import java.util.List;
  */
 @Api(tags = "碳管理数据接口")
 @RestController
-@RequestMapping("/bems/visualization/tngl")
+@RequestMapping("/visualization/tngl")
 public class CarbonManagementController {
 
     @Autowired
