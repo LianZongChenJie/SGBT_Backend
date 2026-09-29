@@ -21,7 +21,7 @@ public class SeriesVO {
     @ApiModelProperty("系列名称")
     private String name;
 
-    private List<String> timeList;
+//    private List<String> timeList;
     @ApiModelProperty("数据值列表")
     private List<BigDecimal> data;
 

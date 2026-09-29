@@ -4,20 +4,14 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.bems.visualization.tngl.service.CarbonManagementService;
-import org.jeecg.modules.bems.visualization.tngl.vo.BoilerEnergyCarbonConversionVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.BoilerEnergyConsumptionVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.PhotovoltaicEnergyIndexVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.PhotovoltaicPowerGenerationVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.WaterTreatmentProductionVO;
+import org.jeecg.modules.bems.visualization.tngl.vo.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 碳管理数据接口
@@ -51,7 +45,7 @@ public class CarbonManagementController {
      */
     @ApiOperation(value = "锅炉能碳指标", notes = "3个锅炉的蒸汽产量，统计1个小时内的数据 (单位: t/h)")
     @GetMapping("/boilerCarbonEmissionsIndex")
-    public Result<Map<String, BigDecimal>> boilerCarbonEmissionsIndex() {
+    public Result<List<BoilerCarbonEmissionsIndexVo>> boilerCarbonEmissionsIndex() {
         return Result.ok(carbonManagementService.boilerCarbonEmissionsIndex());
     }
 

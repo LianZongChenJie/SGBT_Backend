@@ -11,13 +11,7 @@ import org.jeecg.modules.bems.mdm.mapper.DeviceAttributeMapper;
 import org.jeecg.modules.bems.mdm.mapper.DeviceMapper;
 import org.jeecg.modules.bems.mdm.mapper.EquipmentCategoryMapper;
 import org.jeecg.modules.bems.visualization.tngl.service.CarbonManagementService;
-import org.jeecg.modules.bems.visualization.tngl.vo.BoilerEnergyCarbonConversionVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.BoilerEnergyConsumptionItemVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.BoilerEnergyConsumptionVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.PhotovoltaicEnergyIndexVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.PhotovoltaicPowerGenerationVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.SeriesVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.WaterTreatmentProductionVO;
+import org.jeecg.modules.bems.visualization.tngl.vo.*;
 import org.jeecg.modules.bems.visualization.utils.DateRangeUtils;
 import org.jeecg.modules.bems.visualization.vo.PowerTrendVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +52,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
 
 
     @Override
-    public Map<String, BigDecimal> boilerCarbonEmissionsIndex() {
+    public List<BoilerCarbonEmissionsIndexVo> boilerCarbonEmissionsIndex() {
         List<String> deviceNames = Arrays.asList("1#锅炉", "2#锅炉", "3#锅炉");
         // 查询系统
         List<EquipmentCategory> equipmentCategories = equipmentCategoryMapper.selectList(
@@ -73,7 +67,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                         .in("category_id", equipmentCategoryIds)
         );
         if (CollectionUtils.isEmpty(devices)) {
-            return Collections.emptyMap();
+            return new ArrayList<>();
         }
         Map<Long, String> deviceMap = devices.stream()
                 .collect(Collectors.toMap(Device::getId, Device::getDeviceName, (a, b) -> b));
@@ -84,7 +78,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                         .in("device_id", deviceMap.keySet())
                         .eq("attribute_name", "蒸汽累计流量"));
         if (CollectionUtils.isEmpty(attrs)) {
-            return Collections.emptyMap();
+            return new ArrayList<>();
         }
         Map<Long, Long> attrToDevice = attrs.stream()
                 .collect(Collectors.toMap(DeviceAttribute::getId, DeviceAttribute::getDeviceId));
@@ -103,6 +97,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 .filter(h -> h.getValue() != null && h.getCollectionTime() != null)
                 .collect(Collectors.groupingBy(DeviceAttributeHistory::getAttributeId));
 
+        List<BoilerCarbonEmissionsIndexVo> out=new ArrayList<>();
         Map<String, BigDecimal> result = new LinkedHashMap<>();
         for (Map.Entry<Long, List<DeviceAttributeHistory>> entry : grouped.entrySet()) {
             Long attributeId = entry.getKey();
@@ -131,9 +126,13 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 continue;
             }
 
-            result.put(deviceMap.get(deviceId), valueMax.subtract(valueMin));
+            BoilerCarbonEmissionsIndexVo vo = new BoilerCarbonEmissionsIndexVo();
+            vo.setName(deviceMap.get(deviceId));
+            vo.setValue(valueMax.subtract(valueMin));
+            out.add(vo);
         }
-        return result;
+
+        return out;
     }
 
     /**
@@ -360,7 +359,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
         List<BigDecimal> data = list.stream()
                 .map(PowerTrendVO::getTotalValue)
                 .collect(Collectors.toList());
-        return new SeriesVO(name, timeList, data, unit);
+        return new SeriesVO(name, data, unit);
     }
 
     /**

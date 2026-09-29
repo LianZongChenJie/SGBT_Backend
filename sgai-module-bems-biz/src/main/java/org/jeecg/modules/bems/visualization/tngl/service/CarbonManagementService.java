@@ -1,21 +1,15 @@
 package org.jeecg.modules.bems.visualization.tngl.service;
 
-import org.jeecg.modules.bems.visualization.tngl.vo.BoilerEnergyCarbonConversionVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.BoilerEnergyConsumptionVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.PhotovoltaicEnergyIndexVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.PhotovoltaicPowerGenerationVO;
-import org.jeecg.modules.bems.visualization.tngl.vo.WaterTreatmentProductionVO;
+import org.jeecg.modules.bems.visualization.tngl.vo.*;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 public interface CarbonManagementService {
 
     /**
      * 锅炉能碳指标：3 个锅炉的蒸汽产量（1 小时内数据，单位 t/h）
      */
-    Map<String, BigDecimal> boilerCarbonEmissionsIndex();
+    List<BoilerCarbonEmissionsIndexVo> boilerCarbonEmissionsIndex();
 
     /**
      * 锅炉能耗转换碳排放量

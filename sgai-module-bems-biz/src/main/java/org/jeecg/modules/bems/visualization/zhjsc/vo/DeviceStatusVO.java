@@ -17,11 +17,9 @@ import lombok.NoArgsConstructor;
 public class DeviceStatusVO {
 
     @ApiModelProperty("设备名称")
-    @JsonProperty("device_name")
     private String deviceName;
 
     @ApiModelProperty("设备编码")
-    @JsonProperty("device_code")
     private String deviceCode;
 
     @ApiModelProperty("设备属性")
