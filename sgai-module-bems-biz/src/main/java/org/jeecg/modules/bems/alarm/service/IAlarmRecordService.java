@@ -69,4 +69,6 @@ public interface IAlarmRecordService extends IService<AlarmRecord> {
      * @param hour 小时
      */
     void alarmDetectionForMeteringPoint(Long meteringPointId,LocalDateTime hour);
+
+    List<String> listBySecondFloorElectric();
 }

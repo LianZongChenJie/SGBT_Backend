@@ -1,6 +1,7 @@
 package org.jeecg.modules.bems.alarm.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -560,4 +561,11 @@ public class AlarmRecordServiceImpl extends ServiceImpl<AlarmRecordMapper, Alarm
         // 获取该设备该点位该时间段内是否已经生成过告警记录
         return count(new LambdaQueryWrapper<AlarmRecord>().eq(AlarmRecord::getAlarmRulePointId,point.getId()).gt(AlarmRecord::getAlarmTime, time)) > 0L;
     }
+
+    @Override
+    public List<String> listBySecondFloorElectric() {
+        List<AlarmRecord> list = list(new QueryWrapper<AlarmRecord>().like("device_name", "二楼电表"));
+        return list.stream().map(AlarmRecord::getAlarmContent).toList();
+    }
+
 }
