@@ -430,7 +430,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                                                LocalDateTime start,
                                                LocalDateTime end) {
         List<DeviceAttribute> attrs = deviceAttributeMapper.selectList(
-                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName));
+                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName).like("attribute_name","屋顶"));
 
         if (CollectionUtils.isEmpty(attrs)) {
             return fillTrend(Collections.emptyMap(), start, end);
@@ -445,11 +445,11 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
             return fillTrend(Collections.emptyMap(), start, end);
         }
 
-        // 日发电量是瞬时累加值，按天 SUM
+        // 日发电量是瞬时累加值，按天 取最大
         List<Map<String, Object>> rows = deviceAttributeHistoryMapper.selectMaps(
                 new QueryWrapper<DeviceAttributeHistory>()
                         .select("DATE_FORMAT(collection_time, '%Y-%m-%d') AS bucket_time",
-                                "SUM(value) AS total_value")
+                                "MAX(value) AS total_value")
                         .in("attribute_id", attrIds)
                         .ge("collection_time", start)
                         .le("collection_time", end)
@@ -474,7 +474,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                                                          LocalDateTime start,
                                                          LocalDateTime end) {
         List<DeviceAttribute> attrs = deviceAttributeMapper.selectList(
-                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName));
+                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName).like("attribute_name","屋顶"));
 
         if (CollectionUtils.isEmpty(attrs)) {
             return fillTrend(Collections.emptyMap(), start, end);
@@ -498,7 +498,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                         .in("attribute_id", attrIds)
                         .ge("collection_time", start)
                         .le("collection_time", end)
-                        .groupBy("DATE_FORMAT(collection_time, '%Y-%m-%d')")
+                        .groupBy("DATE_FORMAT(collection_time, '%Y-%m-%d')","attribute_id","device_id")
         );
 
         Map<String, BigDecimal> dayMap = new HashMap<>();

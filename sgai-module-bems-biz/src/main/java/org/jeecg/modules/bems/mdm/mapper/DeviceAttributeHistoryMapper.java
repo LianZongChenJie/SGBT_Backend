@@ -16,6 +16,32 @@ public interface DeviceAttributeHistoryMapper extends BaseMapper<DeviceAttribute
     /**
      * 按属性名模糊匹配，取每个 attribute_id 最新时间的 value 之和
      */
+    /**
+     * 按属性名列表模糊匹配，取每个 attribute_id 最新时间的 value 之和
+     */
+    @Select("""
+    SELECT SUM(CAST(h.value AS DECIMAL(20,4))) AS total_value
+    FROM device_attribute_history h
+    INNER JOIN device_attribute a ON a.id = h.attribute_id
+    INNER JOIN (
+        SELECT h2.attribute_id, MAX(h2.collection_time) AS max_time
+        FROM device_attribute_history h2
+        INNER JOIN device_attribute a2 ON a2.id = h2.attribute_id
+        WHERE
+        <foreach collection="names" item="name" open="(" separator=" OR " close=")">
+            a2.attribute_name LIKE CONCAT('%', #{name}, '%')
+        </foreach>
+          AND h2.value REGEXP '^-?[0-9]+([.][0-9]+)?$'
+        GROUP BY h2.attribute_id
+    ) latest ON h.attribute_id = latest.attribute_id
+             AND h.collection_time = latest.max_time
+    WHERE
+    <foreach collection="names" item="name" open="(" separator=" OR " close=")">
+        a.attribute_name LIKE CONCAT('%', #{name}, '%')
+    </foreach>
+      AND h.value REGEXP '^-?[0-9]+([.][0-9]+)?$'
+    """)
+    BigDecimal sumLatestValueByAttributeName(@Param("names") List<String> names);
     @Select("""
         SELECT SUM(CAST(h.value AS DECIMAL(20,4))) AS total_value
         FROM device_attribute_history h
@@ -33,7 +59,6 @@ public interface DeviceAttributeHistoryMapper extends BaseMapper<DeviceAttribute
           AND h.value REGEXP '^-?[0-9]+([.][0-9]+)?$'
         """)
     BigDecimal sumLatestValueByAttributeName(@Param("name") String name);
-
     /**
      * 按属性名分组，取每个 attribute_id 最新时间的 value 之和
      */

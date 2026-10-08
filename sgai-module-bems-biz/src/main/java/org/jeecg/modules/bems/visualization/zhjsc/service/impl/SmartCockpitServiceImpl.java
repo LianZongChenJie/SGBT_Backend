@@ -808,7 +808,15 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
         //其中 调度中心屋顶1、水处理间1 没有累计发电量，只有日发电量和有功功率，
 
         //当前方案 使用 累计发电量
-        BigDecimal total = deviceAttributeHistoryMapper.sumLatestValueByAttributeName("累计发电量");
+        List<String> list=new ArrayList<>();
+       list.add("调度中心屋顶2-累计发电量");
+       list.add("锅炉房屋顶北1-累计发电量");
+       list.add("锅炉房屋顶北2-累计发电量");
+       list.add("锅炉房屋顶南1-累计发电量");
+       list.add("锅炉房屋顶南2-累计发电量");
+       list.add("锅炉房屋顶南3-累计发电量");
+
+        BigDecimal total = deviceAttributeHistoryMapper.sumLatestValueByAttributeName(list);
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
