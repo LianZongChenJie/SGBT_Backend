@@ -382,15 +382,13 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
      */
     @Override
     public PhotovoltaicEnergyIndexVO photovoltaicEnergyIndex(String period) {
-        String PV_CUMULATIVE_ATTR = "累计发电量";
         //电力碳排放因子 (kg CO2 / kWh)
         BigDecimal ELECTRICITY_CARBON_FACTOR = new BigDecimal("0.5810");
         String normalized = DateRangeUtils.normalizePeriod(period);
         LocalDateTime[] range = DateRangeUtils.resolveRange(normalized);
 
         // 1. 查询光伏设备的累计发电量（按天聚合）
-        List<PowerTrendVO> cumulativeList = getDailyCumulativePvTrend(
-                PV_CUMULATIVE_ATTR, range[0], range[1]);
+        List<PowerTrendVO> cumulativeList = getDailyCumulativePvTrend( range[0], range[1]);
 
         // 2. 计算累计发电量（区间内最后一天的值 - 第一天之前的值）
         BigDecimal totalPowerGeneration = calculateTotalGeneration(cumulativeList);
@@ -405,12 +403,11 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
 
     @Override
     public PhotovoltaicPowerGenerationVO photovoltaicPowerGeneration(String period) {
-        String PV_DAILY_ATTR = "日发电量";
         String normalized = DateRangeUtils.normalizePeriod(period);
         LocalDateTime[] range = DateRangeUtils.resolveRange(normalized);
 
         // 按天聚合日发电量
-        List<PowerTrendVO> dailyList = getDailyPvTrend(PV_DAILY_ATTR, range[0], range[1]);
+        List<PowerTrendVO> dailyList = getDailyPvTrend( range[0], range[1]);
 
         PhotovoltaicPowerGenerationVO result = new PhotovoltaicPowerGenerationVO();
         result.setPeriod(normalized);
@@ -426,11 +423,20 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
     /**
      * 按天聚合光伏日发电量
      */
-    private List<PowerTrendVO> getDailyPvTrend(String attrName,
+    private List<PowerTrendVO> getDailyPvTrend(
                                                LocalDateTime start,
                                                LocalDateTime end) {
+        //光伏
+        List<String> list = new ArrayList<>();
+        list.add("调度中心屋顶1-日发电量");
+        list.add("调度中心屋顶2-日发电量");
+        list.add("锅炉房屋顶北1-日发电量");
+        list.add("锅炉房屋顶北2-日发电量");
+        list.add("锅炉房屋顶南1-日发电量");
+        list.add("锅炉房屋顶南2-日发电量");
+        list.add("锅炉房屋顶南3-日发电量");
         List<DeviceAttribute> attrs = deviceAttributeMapper.selectList(
-                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName).like("attribute_name","屋顶"));
+                new QueryWrapper<DeviceAttribute>().in("attribute_name", list));
 
         if (CollectionUtils.isEmpty(attrs)) {
             return fillTrend(Collections.emptyMap(), start, end);
@@ -470,11 +476,19 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
     /**
      * 按天聚合光伏累计发电量（取每日 MAX-MIN 作为当日增量）
      */
-    private List<PowerTrendVO> getDailyCumulativePvTrend(String attrName,
+    private List<PowerTrendVO> getDailyCumulativePvTrend(
                                                          LocalDateTime start,
                                                          LocalDateTime end) {
+        //光伏
+        List<String> list = new ArrayList<>();
+        list.add("调度中心屋顶2-累计发电量");
+        list.add("锅炉房屋顶北1-累计发电量");
+        list.add("锅炉房屋顶北2-累计发电量");
+        list.add("锅炉房屋顶南1-累计发电量");
+        list.add("锅炉房屋顶南2-累计发电量");
+        list.add("锅炉房屋顶南3-累计发电量");
         List<DeviceAttribute> attrs = deviceAttributeMapper.selectList(
-                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName).like("attribute_name","屋顶"));
+                new QueryWrapper<DeviceAttribute>().in("attribute_name",list));
 
         if (CollectionUtils.isEmpty(attrs)) {
             return fillTrend(Collections.emptyMap(), start, end);
