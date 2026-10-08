@@ -11,10 +11,8 @@ import org.jeecg.modules.bems.visualization.ahgl.vo.DividedIntoSixVO;
 import org.jeecg.modules.bems.visualization.zhjsc.service.SmartCockpitService;
 import org.jeecg.modules.bems.visualization.zhjsc.vo.EnvironmentalMonitoringVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -29,6 +27,8 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/visualization/ahgl")
 public class EhsManagementController {
+    @Value("${fdlTokenSjgl:AVcncn2njikigh78VHGffhjG6fhJVKjg5tDghjvYJKLHyuvt}")
+    private String fdlToken;
 
     @Autowired
     private SmartCockpitService smartCockpitService;
@@ -41,7 +41,13 @@ public class EhsManagementController {
      */
     @ApiOperation(value = "环境监测", notes = "cems1、cems2、cems3的二氧化碳浓度、粉尘浓度，按周期查询")
     @GetMapping("/environmentalMonitoring")
-    public Result<List<EnvironmentalMonitoringVO>> environmentalMonitoring(@RequestParam(defaultValue = "本周") String period) {
+    public Result<List<EnvironmentalMonitoringVO>> environmentalMonitoring(@RequestParam(defaultValue = "本周") String period,
+                                                                           @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(smartCockpitService.environmentalMonitoring(period));
     }
 
@@ -56,7 +62,13 @@ public class EhsManagementController {
             @ApiParam(value = "开始时间，默认当前日期往前一周", example = "2026-09-08")
             @RequestParam(value = "startTime", required = false) String startTime,
             @ApiParam(value = "结束时间，默认当前日期", example = "2026-09-15")
-            @RequestParam(value = "endTime", required = false) String endTime) {
+            @RequestParam(value = "endTime", required = false) String endTime,
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
 
         // 日期格式
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -84,7 +96,13 @@ public class EhsManagementController {
      */
     @ApiOperation(value = "统计按照类型统计告警次数", notes = "饼图，统计按照类型统计告警次数（本周、本月、本年）")
     @GetMapping("/alarmsByTypeNumber")
-    public Result<List<AlarmsByTypeNumberVO>> alarmsByTypeNumber() {
+    public Result<List<AlarmsByTypeNumberVO>> alarmsByTypeNumber(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(ehsManagementService.alarmsByTypeNumber());
     }
 }

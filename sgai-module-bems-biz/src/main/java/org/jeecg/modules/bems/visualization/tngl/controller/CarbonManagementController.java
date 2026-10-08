@@ -6,10 +6,8 @@ import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.bems.visualization.tngl.service.CarbonManagementService;
 import org.jeecg.modules.bems.visualization.tngl.vo.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -21,6 +19,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/visualization/tngl")
 public class CarbonManagementController {
+    @Value("${fdlTokenSjgl:AVcncn2njikigh78VHGffhjG6fhJVKjg5tDghjvYJKLHyuvt}")
+    private String fdlToken;
 
     @Autowired
     private CarbonManagementService carbonManagementService;
@@ -35,7 +35,13 @@ public class CarbonManagementController {
      */
     @ApiOperation(value = "锅炉能碳指标锅炉能耗转换碳排放量", notes = "锅炉能耗转换碳排放量")
     @GetMapping("/boilerEnergyCarbonConversion")
-    public Result<List<BoilerEnergyCarbonConversionVO>> boilerEnergyCarbonConversion() {
+    public Result<List<BoilerEnergyCarbonConversionVO>> boilerEnergyCarbonConversion(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(carbonManagementService.boilerEnergyCarbonConversion());
     }
 
@@ -45,7 +51,13 @@ public class CarbonManagementController {
      */
     @ApiOperation(value = "锅炉能碳指标", notes = "3个锅炉的蒸汽产量，统计1个小时内的数据 (单位: t/h)")
     @GetMapping("/boilerCarbonEmissionsIndex")
-    public Result<List<BoilerCarbonEmissionsIndexVo>> boilerCarbonEmissionsIndex() {
+    public Result<List<BoilerCarbonEmissionsIndexVo>> boilerCarbonEmissionsIndex(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(carbonManagementService.boilerCarbonEmissionsIndex());
     }
 
@@ -55,7 +67,13 @@ public class CarbonManagementController {
      */
     @ApiOperation(value = "锅炉能耗", notes = "锅炉的电、水、汽耗数据折线图，分别提供3个锅炉的 (本周、本月、本年)")
     @GetMapping("/boilerEnergyConsumption")
-    public Result<BoilerEnergyConsumptionVO> boilerEnergyConsumption(@RequestParam(defaultValue = "本周") String period) {
+    public Result<BoilerEnergyConsumptionVO> boilerEnergyConsumption(@RequestParam(defaultValue = "本周") String period,
+                                                                     @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(carbonManagementService.boilerEnergyConsumption(period));
     }
 
@@ -65,7 +83,13 @@ public class CarbonManagementController {
      */
     @ApiOperation(value = "水处理生产指标", notes = "水处理量折线图，含原水输入、一次成水量、二次成水量 (本周、本月、本年)")
     @GetMapping("/waterTreatmentProduction")
-    public Result<WaterTreatmentProductionVO> waterTreatmentProduction(@RequestParam(defaultValue = "本周") String period) {
+    public Result<WaterTreatmentProductionVO> waterTreatmentProduction(@RequestParam(defaultValue = "本周") String period,
+                                                                       @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(carbonManagementService.waterTreatmentProduction(period));
     }
 
@@ -84,7 +108,13 @@ public class CarbonManagementController {
      */
     @ApiOperation(value = "光伏能源指标", notes = "累计光伏发电量、碳排放量 (本周、本月、本年)")
     @GetMapping("/photovoltaicEnergyIndex")
-    public Result<PhotovoltaicEnergyIndexVO> photovoltaicEnergyIndex(@RequestParam(defaultValue = "本周") String period) {
+    public Result<PhotovoltaicEnergyIndexVO> photovoltaicEnergyIndex(@RequestParam(defaultValue = "本周") String period,
+                                                                     @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(carbonManagementService.photovoltaicEnergyIndex(period));
     }
 
@@ -94,7 +124,13 @@ public class CarbonManagementController {
      */
     @ApiOperation(value = "光伏发电量柱状图", notes = "发电量柱状图 Y轴发电量，X轴时间 (本周、本月、本年)")
     @GetMapping("/photovoltaicPowerGeneration")
-    public Result<PhotovoltaicPowerGenerationVO> photovoltaicPowerGeneration(@RequestParam(defaultValue = "本周") String period) {
+    public Result<PhotovoltaicPowerGenerationVO> photovoltaicPowerGeneration(@RequestParam(defaultValue = "本周") String period,
+                                                                             @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(carbonManagementService.photovoltaicPowerGeneration(period));
     }
 

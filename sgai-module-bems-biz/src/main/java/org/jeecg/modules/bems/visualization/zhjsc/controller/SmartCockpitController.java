@@ -12,10 +12,8 @@ import org.jeecg.modules.bems.visualization.zhjsc.vo.OperationStatusKeyEquipment
 import org.jeecg.modules.bems.visualization.zhjsc.vo.ProductionOverviewVO;
 import org.jeecg.modules.bems.visualization.zhjsc.vo.SteamElectricityProductionVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -27,6 +25,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/visualization/zhjsc")
 public class SmartCockpitController {
+    @Value("${fdlTokenSjgl:AVcncn2njikigh78VHGffhjG6fhJVKjg5tDghjvYJKLHyuvt}")
+    private String fdlToken;
 
     @Autowired
     private SmartCockpitService smartCockpitService;
@@ -38,7 +38,13 @@ public class SmartCockpitController {
      */
     @ApiOperation(value = "各个能源系统的当日生产数据", notes = "各个能源系统的当日生产数据（累计统计当日）")
     @GetMapping("/dailyProductionData")
-    public Result<List<SteamElectricityProductionVO>> dailyProductionData() {
+    public Result<List<SteamElectricityProductionVO>> dailyProductionData(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(smartCockpitService.dailyProductionData());
     }
     /**
@@ -47,7 +53,13 @@ public class SmartCockpitController {
      */
     @ApiOperation(value = "供能概况", notes = "外供蒸汽量、换算热能；余热热水、光伏产电")
     @GetMapping("/energySupplyOverview")
-    public Result<EnergySupplyOverviewVO> energySupplyOverview() {
+    public Result<EnergySupplyOverviewVO> energySupplyOverview(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(smartCockpitService.energySupplyOverview());
     }
 
@@ -57,7 +69,13 @@ public class SmartCockpitController {
      */
     @ApiOperation(value = "碳足迹", notes = "碳排放总量、等效植树林、再利用能源减排量、绿电减排、绿植固碳")
     @GetMapping("/carbonFootprint")
-    public Result<CarbonFootprintVO> carbonFootprint() {
+    public Result<CarbonFootprintVO> carbonFootprint(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(smartCockpitService.carbonFootprint());
     }
     /**
@@ -68,7 +86,13 @@ public class SmartCockpitController {
      */
     @ApiOperation(value = "环境监测", notes = "cems1、cems2、cems3的二氧化碳浓度、粉尘浓度，按周期查询")
     @GetMapping("/environmentalMonitoring")
-    public Result<List<EnvironmentalMonitoringVO>> environmentalMonitoring(@RequestParam(defaultValue = "本周") String period) {
+    public Result<List<EnvironmentalMonitoringVO>> environmentalMonitoring(@RequestParam(defaultValue = "本周") String period,
+                                                                           @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(smartCockpitService.environmentalMonitoring(period));
     }
 
@@ -78,7 +102,13 @@ public class SmartCockpitController {
      */
     @ApiOperation(value = "生产概况", notes = "风电、光伏两种类型设备产能折线图；X轴为时间，Y轴为发电量,折线图 (本周、本月、本年) 统计 ")
     @GetMapping("/productionOverview")
-    public Result<ProductionOverviewVO> productionOverview(@RequestParam(defaultValue = "本周") String period) {
+    public Result<ProductionOverviewVO> productionOverview(@RequestParam(defaultValue = "本周") String period,
+                                                           @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.OK(smartCockpitService.productionOverview(period));
     }
     /**
@@ -87,7 +117,13 @@ public class SmartCockpitController {
      */
     @ApiOperation(value = "重点设备运行状态", notes = "除氧1、2；锅炉1、2、3的运行状态")
     @GetMapping("/operationStatusKeyEquipment")
-    public Result<OperationStatusKeyEquipmentVO> operationStatusKeyEquipment() {
+    public Result<OperationStatusKeyEquipmentVO> operationStatusKeyEquipment(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(smartCockpitService.operationStatusKeyEquipment());
     }
 
@@ -97,7 +133,13 @@ public class SmartCockpitController {
      */
     @ApiOperation(value = "报警列表", notes = "等级、报警名称、对应设备、处理状态")
     @GetMapping("/alarmList")
-    public Result<AlarmListVO> alarmList() {
+    public Result<AlarmListVO> alarmList(
+            @RequestHeader(value = "Token", required = false) String accessToken) {
+
+        // 校验 token
+        if (!fdlToken.equals(accessToken)) {
+            return Result.error("Token无效");
+        }
         return Result.ok(smartCockpitService.alarmList());
     }
 
