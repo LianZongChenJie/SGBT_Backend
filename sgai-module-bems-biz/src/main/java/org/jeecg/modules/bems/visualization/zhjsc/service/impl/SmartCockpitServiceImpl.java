@@ -357,8 +357,6 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
 
     @Override
     public AlarmListVO alarmList(String alarmStatus) {
-        // 近一个月起点（含今天）
-        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
 
         // 1. 简单告警列表：近一个月 + 可选状态
         QueryWrapper<AlarmRecord> listWrapper = new QueryWrapper<>();
@@ -368,10 +366,11 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
                 "alarm_time          AS alarmTime",
                 "alarm_category_name AS alarmCategoryName"
         );
-        listWrapper.ge("alarm_time", oneMonthAgo);
+//        listWrapper.ge("alarm_time", oneMonthAgo);
         if (alarmStatus != null && !alarmStatus.isEmpty()) {
             listWrapper.eq("alarm_status", alarmStatus);
         }
+        listWrapper.last("LIMIT 10");
         listWrapper.orderByDesc("alarm_time");
 
         List<Map<String, Object>> list = alarmRecordMapper.selectMaps(listWrapper);
@@ -385,6 +384,8 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
                 .collect(Collectors.toList());
 
         // 2. 近一个月告警按类型统计
+        // 近一个月起点（含今天）
+        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
         QueryWrapper<AlarmRecord> countWrapper = new QueryWrapper<>();
         countWrapper.select(
                 "alarm_category_name AS name",
