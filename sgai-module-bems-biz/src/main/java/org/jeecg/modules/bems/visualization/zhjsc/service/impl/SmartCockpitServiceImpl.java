@@ -2,6 +2,7 @@ package org.jeecg.modules.bems.visualization.zhjsc.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import org.jeecg.modules.bems.alarm.entity.AlarmRecord;
 import org.jeecg.modules.bems.alarm.mapper.AlarmLevelMapper;
 import org.jeecg.modules.bems.alarm.mapper.AlarmRecordMapper;
 import org.jeecg.modules.bems.energyAnalysis.constant.BusinessConfigConstant;
@@ -355,18 +356,50 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
     }
 
     @Override
-    public AlarmListVO alarmList() {
-        // 1. 简单告警列表
-        List<Map<String, Object>> list = alarmRecordMapper.selectSimpleAlarmList();
+    public AlarmListVO alarmList(String alarmStatus) {
+        // 近一个月起点（含今天）
+        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+
+        // 1. 简单告警列表：近一个月 + 可选状态
+        QueryWrapper<AlarmRecord> listWrapper = new QueryWrapper<>();
+        listWrapper.select(
+                "device_name         AS deviceName",
+                "alarm_status          AS alarmStatus",
+                "alarm_time          AS alarmTime",
+                "alarm_category_name AS alarmCategoryName"
+        );
+        listWrapper.ge("alarm_time", oneMonthAgo);
+        if (alarmStatus != null && !alarmStatus.isEmpty()) {
+            listWrapper.eq("alarm_status", alarmStatus);
+        }
+        listWrapper.orderByDesc("alarm_time");
+
+        List<Map<String, Object>> list = alarmRecordMapper.selectMaps(listWrapper);
+
         List<AlarmRecordSimpleVO> records = list.stream()
                 .map(row -> new AlarmRecordSimpleVO(
                         toStr(row.get("deviceName")),
+                        toStr(row.get("alarmStatus")),
                         toLocalDateTime(row.get("alarmTime")),
                         toStr(row.get("alarmCategoryName"))))
                 .collect(Collectors.toList());
 
-        // 2. 当日告警按告警类型统计
-        List<Map<String, Object>> pieData = alarmRecordMapper.selectAlarmCountByCategory();
+        // 2. 近一个月告警按类型统计
+        QueryWrapper<AlarmRecord> countWrapper = new QueryWrapper<>();
+        countWrapper.select(
+                "alarm_category_name AS name",
+                "COUNT(*)            AS value"
+        );
+        countWrapper.ge("alarm_time", oneMonthAgo);
+        countWrapper.isNotNull("alarm_category_name");
+        if (alarmStatus != null && !alarmStatus.isEmpty()) {
+            countWrapper.eq("alarm_status", alarmStatus);
+        }
+        countWrapper.groupBy("alarm_category_name");
+        countWrapper.orderByDesc("value");
+
+        List<Map<String, Object>> pieData = alarmRecordMapper.selectMaps(countWrapper);
+
         List<AlarmCategoryCountVO> pie = pieData.stream()
                 .map(row -> new AlarmCategoryCountVO(
                         toStr(row.get("name")),

@@ -21,9 +21,13 @@ public class AlarmRecordSimpleVO {
     @ApiModelProperty("设备名称")
     private String deviceName;
 
+    @ApiModelProperty("未处理：1；已消除：2")
+    private String alarmStatus;
+
     @ApiModelProperty("告警时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime alarmTime;
+
 
     @ApiModelProperty("告警类别名称")
     private String alarmCategoryName;

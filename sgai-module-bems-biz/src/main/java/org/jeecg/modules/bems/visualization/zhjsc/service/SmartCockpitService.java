@@ -16,7 +16,7 @@ public interface SmartCockpitService {
 
     OperationStatusKeyEquipmentVO operationStatusKeyEquipment();
 
-    AlarmListVO alarmList();
+    AlarmListVO alarmList(String alarmStatus);
 
     List<SteamElectricityProductionVO> dailyProductionData();
 

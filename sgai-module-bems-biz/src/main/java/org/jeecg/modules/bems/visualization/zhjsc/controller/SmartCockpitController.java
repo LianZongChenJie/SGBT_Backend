@@ -134,13 +134,14 @@ public class SmartCockpitController {
     @ApiOperation(value = "报警列表", notes = "等级、报警名称、对应设备、处理状态")
     @GetMapping("/alarmList")
     public Result<AlarmListVO> alarmList(
+            @RequestParam(required = false) String alarmStatus,
             @RequestHeader(value = "Token", required = false) String accessToken) {
 
         // 校验 token
         if (!fdlToken.equals(accessToken)) {
             return Result.error("Token无效");
         }
-        return Result.ok(smartCockpitService.alarmList());
+        return Result.ok(smartCockpitService.alarmList(alarmStatus));
     }
 
 }
