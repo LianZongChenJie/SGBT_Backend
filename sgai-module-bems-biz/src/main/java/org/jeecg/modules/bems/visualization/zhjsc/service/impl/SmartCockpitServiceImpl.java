@@ -761,7 +761,6 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
     }
     /**
      * 按属性名模糊匹配，在 [start, end) 区间内，按时间粒度聚合 value 之和
-     * 纯 MyBatis-Plus 实现，不用 XML / @Select
      *
      * @param attrName   属性名关键字，如 "日发电量"、"直流侧累计发电量"
      * @param start      开始时间（含）

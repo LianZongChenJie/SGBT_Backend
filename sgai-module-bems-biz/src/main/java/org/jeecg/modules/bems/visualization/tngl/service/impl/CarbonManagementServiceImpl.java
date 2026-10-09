@@ -136,7 +136,6 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
     }
     /**
      * 按属性名（模糊匹配），取每个 attribute_id 最新时间的 value，再按 attribute_name 分组求和
-     * 纯 MyBatis-Plus 实现，不用 XML / @Select
      *
      * @param attrName 属性名关键字，如 "_标况体积流量"
      * @return List<Map>，key: attributeName / totalValue
