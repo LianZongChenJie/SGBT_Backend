@@ -134,6 +134,81 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
 
         return out;
     }
+    /**
+     * 按属性名（模糊匹配），取每个 attribute_id 最新时间的 value，再按 attribute_name 分组求和
+     * 纯 MyBatis-Plus 实现，不用 XML / @Select
+     *
+     * @param attrName 属性名关键字，如 "_标况体积流量"
+     * @return List<Map>，key: attributeName / totalValue
+     */
+    private List<Map<String, Object>> sumLatestValueGroupByAttributeName(String attrName) {
+        if (attrName == null || attrName.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 1. 按属性名模糊匹配，查出属性元信息
+        List<DeviceAttribute> attrs = deviceAttributeMapper.selectList(
+                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName));
+        if (CollectionUtils.isEmpty(attrs)) {
+            return Collections.emptyList();
+        }
+        // attributeId -> attributeName
+        Map<Long, String> attrNameMap = attrs.stream()
+                .filter(a -> a.getId() != null && a.getAttributeName() != null)
+                .collect(Collectors.toMap(DeviceAttribute::getId, DeviceAttribute::getAttributeName, (a, b) -> a));
+
+        List<Long> attrIds = new ArrayList<>(attrNameMap.keySet());
+        if (attrIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 查这些属性的所有历史记录（只取需要字段）
+        QueryWrapper<DeviceAttributeHistory> historyWrapper = new QueryWrapper<>();
+        historyWrapper.select("attribute_id", "collection_time", "value")
+                .in("attribute_id", attrIds);
+        List<DeviceAttributeHistory> histories = deviceAttributeHistoryMapper.selectList(historyWrapper);
+        if (CollectionUtils.isEmpty(histories)) {
+            return Collections.emptyList();
+        }
+
+        // 3. 按 attribute_id 分组，取 collection_time 最大的一条
+        Map<Long, DeviceAttributeHistory> latestMap = new HashMap<>();
+        for (DeviceAttributeHistory h : histories) {
+            Long attrId = h.getAttributeId();
+            if (attrId == null || h.getCollectionTime() == null) {
+                continue;
+            }
+            DeviceAttributeHistory exist = latestMap.get(attrId);
+            if (exist == null || h.getCollectionTime().isAfter(exist.getCollectionTime())) {
+                latestMap.put(attrId, h);
+            }
+        }
+
+        // 4. 按 attribute_name 分组求和
+        // LinkedHashMap 保证顺序稳定
+        Map<String, BigDecimal> nameSumMap = new LinkedHashMap<>();
+        for (Map.Entry<Long, DeviceAttributeHistory> e : latestMap.entrySet()) {
+            String name = attrNameMap.get(e.getKey());
+            if (name == null) {
+                continue;
+            }
+            BigDecimal v = parseDecimal(e.getValue().getValue());
+            if (v == null) {
+                continue;
+            }
+            nameSumMap.merge(name, v, BigDecimal::add);
+        }
+
+        // 5. 转成 List<Map>，兼容原返回结构
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map.Entry<String, BigDecimal> e : nameSumMap.entrySet()) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("attributeName", e.getKey());
+            row.put("totalValue", e.getValue());
+            result.add(row);
+        }
+        return result;
+    }
 
     /**
      * 锅炉能耗转换碳排放量
@@ -142,7 +217,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
     public List<BoilerEnergyCarbonConversionVO> boilerEnergyCarbonConversion() {
         // 标况体积流量
         String attribute_name = "_标况体积流量";
-        List<Map<String, Object>> list = deviceAttributeHistoryMapper.sumLatestValueGroupByAttributeName(attribute_name);
+        List<Map<String, Object>> list = sumLatestValueGroupByAttributeName(attribute_name);
 
         // 天然气热值（用于计算能耗 KJ），单位：KJ/Nm³
         // 天然气低位发热量通常在 35000 ~ 36000 KJ/Nm³ 之间，这里按 35500 估算，请根据实际业务替换

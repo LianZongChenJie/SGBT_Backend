@@ -621,6 +621,71 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
                 heatingCoverage,
                 supplyToHouseholds);
     }
+    /**
+     * 按属性名列表（模糊匹配），取每个 attribute_id 最新时间的 value 之和
+     */
+    private BigDecimal sumLatestValueByAttributeNames(List<String> names) {
+        if (CollectionUtils.isEmpty(names)) {
+            return BigDecimal.ZERO;
+        }
+
+        // 1. 先按属性名模糊匹配，查出所有 DeviceAttribute
+        QueryWrapper<DeviceAttribute> attrWrapper = new QueryWrapper<>();
+        attrWrapper.and(w -> {
+            boolean first = true;
+            for (String name : names) {
+                if (!first) {
+                    w.or();
+                }
+                first = false;
+                w.like("attribute_name", name);
+            }
+        });
+        List<DeviceAttribute> attributes = deviceAttributeMapper.selectList(attrWrapper);
+        if (CollectionUtils.isEmpty(attributes)) {
+            return BigDecimal.ZERO;
+        }
+
+        List<Long> attrIds = attributes.stream()
+                .map(DeviceAttribute::getId)
+                .collect(Collectors.toList());
+
+        // 2. 查这些属性的所有历史记录
+        QueryWrapper<DeviceAttributeHistory> historyWrapper = new QueryWrapper<>();
+        historyWrapper.select("attribute_id", "collection_time", "value")
+                .in("attribute_id", attrIds);
+        List<DeviceAttributeHistory> histories = deviceAttributeHistoryMapper.selectList(historyWrapper);
+        if (CollectionUtils.isEmpty(histories)) {
+            return BigDecimal.ZERO;
+        }
+
+        // 3. 按 attribute_id 分组，取 collection_time 最大的一条
+        Map<Long, DeviceAttributeHistory> latestMap = new HashMap<>();
+        for (DeviceAttributeHistory h : histories) {
+            Long attrId = h.getAttributeId();
+            if (attrId == null || h.getCollectionTime() == null) {
+                continue;
+            }
+            DeviceAttributeHistory exist = latestMap.get(attrId);
+            if (exist == null || h.getCollectionTime().isAfter(exist.getCollectionTime())) {
+                latestMap.put(attrId, h);
+            }
+        }
+
+        // 4. 求和
+        BigDecimal total = BigDecimal.ZERO;
+        for (DeviceAttributeHistory h : latestMap.values()) {
+            if (h.getValue() == null) {
+                continue;
+            }
+            try {
+                total = total.add(new BigDecimal(h.getValue().trim()));
+            } catch (NumberFormatException ignored) {
+                // 非数字跳过
+            }
+        }
+        return total;
+    }
 
     /**
      * 外供蒸汽量：锅炉蒸汽流量历史累计值
@@ -628,7 +693,8 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
      * @return 吨/小时，保留 2 位小数；无数据返回 0
      */
     private BigDecimal getExternalSteamSupplyVolume() {
-        BigDecimal total = deviceAttributeHistoryMapper.sumLatestValueByAttributeName("锅炉蒸汽流量");
+        BigDecimal total = sumLatestValueByAttributeNames(
+                Collections.singletonList("锅炉蒸汽流量"));
         return scale2(defaultZero(total));
     }
 
@@ -693,7 +759,86 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
             default -> throw new IllegalArgumentException("period 非法: " + normalized);
         };
     }
+    /**
+     * 按属性名模糊匹配，在 [start, end) 区间内，按时间粒度聚合 value 之和
+     * 纯 MyBatis-Plus 实现，不用 XML / @Select
+     *
+     * @param attrName   属性名关键字，如 "日发电量"、"直流侧累计发电量"
+     * @param start      开始时间（含）
+     * @param end        结束时间（不含）
+     * @param dateFormat 时间粒度：'%Y-%m-%d' 天 / '%Y-%m' 月 / '%Y' 年
+     * @return bucketTime -> totalValue
+     */
+    private List<PowerTrendVO> selectPowerTrendByWrapper(String attrName,
+                                                         LocalDateTime start,
+                                                         LocalDateTime end,
+                                                         String dateFormat) {
+        // 1. 按属性名模糊匹配，查出属性
+        List<DeviceAttribute> attributes = deviceAttributeMapper.selectList(
+                new QueryWrapper<DeviceAttribute>().like("attribute_name", attrName));
+        if (CollectionUtils.isEmpty(attributes)) {
+            return Collections.emptyList();
+        }
+        List<Long> attrIds = attributes.stream()
+                .map(DeviceAttribute::getId)
+                .collect(Collectors.toList());
 
+        // 2. 查区间内历史数据
+        QueryWrapper<DeviceAttributeHistory> wrapper = new QueryWrapper<>();
+        wrapper.select("attribute_id", "collection_time", "value")
+                .in("attribute_id", attrIds)
+                .ge("collection_time", start)
+                .lt("collection_time", end)
+                .apply("value REGEXP '^-?[0-9]+([.][0-9]+)?$'");
+        List<DeviceAttributeHistory> histories = deviceAttributeHistoryMapper.selectList(wrapper);
+        if (CollectionUtils.isEmpty(histories)) {
+            return Collections.emptyList();
+        }
+
+        // 3. 根据 dateFormat 决定时间粒度
+        DateTimeFormatter fmt = resolveFormatter(dateFormat);
+
+        // 4. 按 bucketTime 分组求和
+        Map<String, BigDecimal> bucketMap = new LinkedHashMap<>();
+        for (DeviceAttributeHistory h : histories) {
+            if (h.getCollectionTime() == null || h.getValue() == null) {
+                continue;
+            }
+            String bucket = h.getCollectionTime().format(fmt);
+            BigDecimal v;
+            try {
+                v = new BigDecimal(h.getValue().trim());
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
+            bucketMap.merge(bucket, v, BigDecimal::add);
+        }
+
+        // 5. 转 VO 并按时间排序
+        return bucketMap.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> new PowerTrendVO(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 把 SQL 的 DATE_FORMAT 格式串映射成 Java DateTimeFormatter
+     */
+    private DateTimeFormatter resolveFormatter(String dateFormat) {
+        if (dateFormat == null) {
+            return DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        }
+        switch (dateFormat) {
+            case "%Y-%m-%d":
+                return DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            case "%Y-%m":
+                return DateTimeFormatter.ofPattern("yyyy-MM");
+            case "%Y":
+                return DateTimeFormatter.ofPattern("yyyy");
+            default:
+                return DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        }
+    }
     /**
      * 按“天”聚合，返回区间内每一天的值，无数据补 0
      *
@@ -707,7 +852,7 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
                                              LocalDateTime end,
                                              String normalized) {
         // 1. 按天聚合查询
-        List<PowerTrendVO> daily = deviceAttributeHistoryMapper.selectPowerTrend(
+        List<PowerTrendVO> daily = selectPowerTrendByWrapper(
                 attrName, start, end, "%Y-%m-%d");
 
         // 2. 天 -> 值
@@ -816,7 +961,7 @@ public class SmartCockpitServiceImpl implements SmartCockpitService {
        list.add("锅炉房屋顶南2-累计发电量");
        list.add("锅炉房屋顶南3-累计发电量");
 
-        BigDecimal total = deviceAttributeHistoryMapper.sumLatestValueByAttributeName(list);
+        BigDecimal total = sumLatestValueByAttributeNames(list);
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
