@@ -98,7 +98,6 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 .collect(Collectors.groupingBy(DeviceAttributeHistory::getAttributeId));
 
         List<BoilerCarbonEmissionsIndexVo> out=new ArrayList<>();
-        Map<String, BigDecimal> result = new LinkedHashMap<>();
         for (Map.Entry<Long, List<DeviceAttributeHistory>> entry : grouped.entrySet()) {
             Long attributeId = entry.getKey();
             Long deviceId = attrToDevice.get(attributeId);
@@ -161,7 +160,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
             return Collections.emptyList();
         }
 
-        // 2. 查这些属性的所有历史记录（只取需要字段）
+        // 2. 查这些属性的所有历史记录
         QueryWrapper<DeviceAttributeHistory> historyWrapper = new QueryWrapper<>();
         historyWrapper.select("attribute_id", "collection_time", "value")
                 .in("attribute_id", attrIds);
@@ -219,7 +218,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
         List<Map<String, Object>> list = sumLatestValueGroupByAttributeName(attribute_name);
 
         // 天然气热值（用于计算能耗 KJ），单位：KJ/Nm³
-        // 天然气低位发热量通常在 35000 ~ 36000 KJ/Nm³ 之间，这里按 35500 估算，请根据实际业务替换
+        // 天然气低位发热量通常在 35000 ~ 36000 KJ/Nm³ 之间，这里按 35500 估算
         BigDecimal calorificValue = new BigDecimal("35500");
 
         List<BoilerEnergyCarbonConversionVO> result = new ArrayList<>();
@@ -305,6 +304,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
             Map<String, BigDecimal> steamMap = dailyConsumptionByAttrIds(
                     Collections.singletonList(steamAttrId), range[0], range[1]);
 
+            //排序
             List<PowerTrendVO> waterList = fillTrend(waterMap, range[0], range[1]);
             List<PowerTrendVO> steamList = fillTrend(steamMap, range[0], range[1]);
 
@@ -326,14 +326,15 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
         String normalized = DateRangeUtils.normalizePeriod(period);
         LocalDateTime[] range = DateRangeUtils.resolveRange(normalized);
 
-        final String rawWaterKey = "超滤进水流量";    // 原水输入
-        final String firstRoKey = "一级RO产水流量";  // 一次成水量
-        final String secondRoKey = "二级RO产水流量";  // 二次成水量
+        String rawWaterKey = "超滤进水流量";    // 原水输入
+        String firstRoKey = "一级RO产水流量";  // 一次成水量
+        String secondRoKey = "二级RO产水流量";  // 二次成水量
 
         Map<String, BigDecimal> rawMap = dailyConsumptionByAttr(rawWaterKey, range[0], range[1]);
         Map<String, BigDecimal> firstMap = dailyConsumptionByAttr(firstRoKey, range[0], range[1]);
         Map<String, BigDecimal> secondMap = dailyConsumptionByAttr(secondRoKey, range[0], range[1]);
 
+        //排序
         List<PowerTrendVO> rawList = fillTrend(rawMap, range[0], range[1]);
         List<PowerTrendVO> firstList = fillTrend(firstMap, range[0], range[1]);
         List<PowerTrendVO> secondList = fillTrend(secondMap, range[0], range[1]);
@@ -498,8 +499,8 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
      * 按天聚合光伏日发电量
      */
     private List<PowerTrendVO> getDailyPvTrend(
-                                               LocalDateTime start,
-                                               LocalDateTime end) {
+            LocalDateTime start,
+            LocalDateTime end) {
         //光伏
         List<String> list = new ArrayList<>();
         list.add("调度中心屋顶1-日发电量");
@@ -513,6 +514,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 new QueryWrapper<DeviceAttribute>().in("attribute_name", list));
 
         if (CollectionUtils.isEmpty(attrs)) {
+            //排序返回
             return fillTrend(Collections.emptyMap(), start, end);
         }
 
@@ -522,6 +524,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 .collect(Collectors.toList());
 
         if (attrIds.isEmpty()) {
+            //排序返回
             return fillTrend(Collections.emptyMap(), start, end);
         }
 
@@ -544,6 +547,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
             dayMap.put(day, value);
         }
 
+        //排序返回
         return fillTrend(dayMap, start, end);
     }
 
@@ -551,8 +555,8 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
      * 按天聚合光伏累计发电量（取每日 MAX-MIN 作为当日增量）
      */
     private List<PowerTrendVO> getDailyCumulativePvTrend(
-                                                         LocalDateTime start,
-                                                         LocalDateTime end) {
+            LocalDateTime start,
+            LocalDateTime end) {
         //光伏
         List<String> list = new ArrayList<>();
         list.add("调度中心屋顶2-累计发电量");
@@ -565,6 +569,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 new QueryWrapper<DeviceAttribute>().in("attribute_name",list));
 
         if (CollectionUtils.isEmpty(attrs)) {
+            //排序返回
             return fillTrend(Collections.emptyMap(), start, end);
         }
 
@@ -574,6 +579,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
                 .collect(Collectors.toList());
 
         if (attrIds.isEmpty()) {
+            //排序返回
             return fillTrend(Collections.emptyMap(), start, end);
         }
 
@@ -599,6 +605,7 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
             dayMap.put(day, diff);
         }
 
+        //排序返回
         return fillTrend(dayMap, start, end);
     }
 
