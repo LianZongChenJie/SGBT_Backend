@@ -90,7 +90,7 @@ public class CameraMqttClient {
                         log.debug("无需应答，跳过 topic={}", topic);
                         return;
                     }
-
+                    // 设定应答报文
                     ResultRspVO rsp = result.getRsp();
                     String rspTopic = buildRspTopic(result);
                     if (rspTopic == null) {
@@ -127,9 +127,10 @@ public class CameraMqttClient {
      */
     private void subscribeAll() {
         try {
-            List<String> topics = mqttConfig.getSubTopics();
+            List<String> topics = mqttConfig.buildSubTopicFilters();
             if (topics == null || topics.isEmpty()) {
-                topics = Arrays.asList("+/+/+");
+                log.warn("未配置订阅主题，跳过订阅");
+                return;
             }
             String[] topicArr = topics.toArray(new String[0]);
             int[] qosArr = new int[topicArr.length];
@@ -144,51 +145,30 @@ public class CameraMqttClient {
     /**
      * 构建应答发布 topic
      * <p>
-     * 规则：
-     * 1. 模板以 /*&#47; 开头 → 只保留发布主题（去掉前缀）
-     * 2. 模板含 {deviceType}/{deviceId}/{action} → 用路由信息替换
-     * 3. 模板含 %s → 用 deviceId 替换（兼容旧配置）
-     * 4. 路由信息缺失 → 返回 null，不发布
+     * 规则：/设备类型标识/设备标识/发布主题
+     * 其中设备类型标识、设备标识来自路由信息（动态），发布主题根据订阅主题
+     * 从固定发布主题列表中解析（如 result → result_rsp）。
+     * 路由信息缺失或订阅主题无对应发布主题时返回 null，不发布。
      */
     private String buildRspTopic(HandleResult result) {
-        String template = mqttConfig.getPubTopicRsp();
-        if (template == null || template.trim().isEmpty()) {
-            return null;
-        }
-        template = template.trim();
-
-        // 规则 1：/*/ 前缀 → 只用发布主题
-        if (template.startsWith("/*/")) {
-            String topic = template.substring(3).trim();
-            return topic.isEmpty() ? null : topic;
-        }
-
-        // 需要路由信息
         if (!result.hasRouteInfo()) {
-            log.warn("发布主题模板 [{}] 需要设备信息，但路由信息缺失", template);
+            log.warn("发布主题需要设备信息（设备类型标识/设备标识），但路由信息缺失");
             return null;
         }
 
-        String action = isBlank(result.getAction()) ? "result" : result.getAction();
-
-        // 规则 2：占位符替换
-        String topic = template
-                .replace("{deviceType}", result.getDeviceType())
-                .replace("{deviceId}", result.getDeviceId())
-                .replace("{action}", action);
-
-        // 规则 3：兼容 %s（等价 deviceId）
-        if (topic.contains("%s")) {
-            topic = String.format(topic, result.getDeviceId());
-        }
-
-        // 规则 4：若替换后仍含未解析的占位符，视为无效
-        if (topic.contains("{") || topic.contains("}")) {
-            log.warn("发布主题模板解析后仍含未替换占位符: {}", topic);
+        String subAction = result.getAction();
+        if (isBlank(subAction)) {
+            log.warn("缺少订阅主题（动作），无法确定发布主题");
             return null;
         }
 
-        return topic.isEmpty() ? null : topic;
+        String pubTopic = mqttConfig.resolvePubTopic(subAction);
+        if (pubTopic == null) {
+            log.warn("未配置订阅主题 [{}] 对应的发布主题", subAction);
+            return null;
+        }
+
+        return "/" + result.getDeviceType() + "/" + result.getDeviceId() + "/" + pubTopic;
     }
 
     private boolean isBlank(String s) {
