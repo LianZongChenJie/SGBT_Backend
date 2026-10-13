@@ -56,6 +56,7 @@ public class CameraMqttClient {
             @Override
             public void connectComplete(boolean reconnect, String serverURI) {
                 log.info("连接完成 reconnect={}, server={}", reconnect, serverURI);
+                // 订阅所有配置的 topic
                 subscribeAll();
             }
 
@@ -64,6 +65,7 @@ public class CameraMqttClient {
                 log.warn("连接丢失: {}", cause == null ? "unknown" : cause.getMessage());
             }
 
+            // 发布
             @Override
             public void messageArrived(String topic, MqttMessage message) {
                 String payload = new String(message.getPayload(), StandardCharsets.UTF_8);

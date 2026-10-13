@@ -46,7 +46,7 @@ public class DeviceMessageRouter {
             deviceId = json.getString("sn");
             action = json.getString("cmd");
         } catch (Exception e) {
-            log.error("解析报文失败 topic={}", topic, e);
+            log.error("解析报文失败 topic={},payload={}", topic, payload, e);
             return HandleResult.of(ResultRspVO.fail("", "json_parse_error"), null, null, null);
         }
 

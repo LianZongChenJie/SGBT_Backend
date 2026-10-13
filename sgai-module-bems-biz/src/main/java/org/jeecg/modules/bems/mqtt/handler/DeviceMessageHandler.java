@@ -3,7 +3,7 @@ package org.jeecg.modules.bems.mqtt.handler;
 import org.jeecg.modules.bems.mqtt.vo.HandleResult;
 
 /**
- * 设备消息处理器接口
+ * 消息处理器接口
  */
 public interface DeviceMessageHandler {
 

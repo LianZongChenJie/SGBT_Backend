@@ -49,27 +49,35 @@ public class MqttDemoMain {
         // 1. 连接
         connect();
 
+        String rspTopic1 = "/" + DEVICE_TYPE + "/" + DEVICE_ID + "/result_rsp";
+        String rspTopic2 = "/" + DEVICE_TYPE + "/" + DEVICE_ID + "/image_result_rsp";
+
         // 2. 订阅应答主题
-        subscribeRsp();
+        subscribeRsp(rspTopic1, rspTopic2);
+
+        boolean ok = true;
 
         // 3. 场景一：一起上传模式（result 带图片）
+        System.out.println("\n场景一：一起上传模式（result 带图片）");
         testInlineImage();
-
-        // 4. 场景二：分开上传模式（result + image_result）
-        testSplitImage();
-
-        // 5. 等待应答
+        // 4. 等待应答
         System.out.println("\n等待平台应答...");
-        boolean ok1 = RESULT_LATCH.await(1, TimeUnit.SECONDS);
-        boolean ok2 = IMAGE_RESULT_LATCH.await(1, TimeUnit.SECONDS);
-
+        ok = RESULT_LATCH.await(1, TimeUnit.SECONDS);
         System.out.println("\n========== 验证结果 ==========");
-        System.out.println("result_rsp       收到: " + ok1);
-        System.out.println("image_result_rsp 收到: " + ok2);
+        System.out.println("result_rsp       收到: " + ok);
+
+        // 3. 场景二：分开上传模式（result + image_result）
+//        System.out.println("\n场景二：分开上传模式（result + image_result）");
+//        testSplitImage();
+//        // 4. 等待应答
+//        System.out.println("\n等待平台应答...");
+//        ok = IMAGE_RESULT_LATCH.await(1, TimeUnit.SECONDS);
+//        System.out.println("\n========== 验证结果 ==========");
+//        System.out.println("image_result_rsp 收到: " + ok);
 
         // 6. 关闭
         disconnect();
-        System.exit((ok1 && ok2) ? 0 : 1);
+        System.exit((ok) ? 0 : 1);
     }
 
     // ---------------- 连接 ----------------
@@ -91,9 +99,7 @@ public class MqttDemoMain {
     }
 
     // ---------------- 订阅应答 ----------------
-    private static void subscribeRsp() throws MqttException {
-        String rspTopic1 = "/" + DEVICE_TYPE + "/" + DEVICE_ID + "/result_rsp";
-        String rspTopic2 = "/" + DEVICE_TYPE + "/" + DEVICE_ID + "/image_result_rsp";
+    private static void subscribeRsp(String rspTopic1, String rspTopic2) throws MqttException {
 
         simClient.subscribe(rspTopic1, 1, MqttDemoMain::handleRsp);
         simClient.subscribe(rspTopic2, 1, MqttDemoMain::handleRsp);

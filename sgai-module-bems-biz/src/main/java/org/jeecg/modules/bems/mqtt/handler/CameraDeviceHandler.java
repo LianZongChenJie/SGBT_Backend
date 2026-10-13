@@ -15,7 +15,7 @@ import org.jeecg.modules.bems.mqtt.vo.ResultRspVO;
 import org.springframework.stereotype.Component;
 
 /**
- * 相机设备消息处理器
+ * 设备消息处理器
  */
 @Slf4j
 @Component
