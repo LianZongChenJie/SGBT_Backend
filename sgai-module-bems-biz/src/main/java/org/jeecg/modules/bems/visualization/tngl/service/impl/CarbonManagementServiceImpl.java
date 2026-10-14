@@ -272,9 +272,8 @@ public class CarbonManagementServiceImpl implements CarbonManagementService {
             return result;
         }
         // 属性名关键字
-        String waterKey = "锅炉给水流量";
+        String waterKey = "给水累计流量";
         String steamKey = "蒸汽累计流量";
-        ;
 
         // 4. 一次性查出这些锅炉下所有属性，避免循环查库
         List<Long> boilerIds = boilers.stream().map(Device::getId).collect(Collectors.toList());
