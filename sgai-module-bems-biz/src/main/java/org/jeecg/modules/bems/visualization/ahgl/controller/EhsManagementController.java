@@ -1,5 +1,6 @@
 package org.jeecg.modules.bems.visualization.ahgl.controller;
 
+import cn.hutool.core.util.StrUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -42,10 +43,11 @@ public class EhsManagementController {
     @ApiOperation(value = "环境监测", notes = "cems1、cems2、cems3的二氧化碳浓度、粉尘浓度，按周期查询")
     @GetMapping("/environmentalMonitoring")
     public Result<List<EnvironmentalMonitoringVO>> environmentalMonitoring(@RequestParam(defaultValue = "本周") String period,
-                                                                           @RequestHeader(value = "Token", required = false) String accessToken) {
+                                                                           @RequestHeader(value = "Token", required = false) String accessToken,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         // 校验 token
-        if (!fdlToken.equals(accessToken)) {
+        if (StrUtil.isBlankIfStr(authorization) && !fdlToken.equals(accessToken)) {
             return Result.error("Token无效");
         }
         return Result.ok(smartCockpitService.environmentalMonitoring(period));
@@ -63,10 +65,11 @@ public class EhsManagementController {
             @RequestParam(value = "startTime", required = false) String startTime,
             @ApiParam(value = "结束时间，默认当前日期", example = "2026-09-15")
             @RequestParam(value = "endTime", required = false) String endTime,
-            @RequestHeader(value = "Token", required = false) String accessToken) {
+            @RequestHeader(value = "Token", required = false) String accessToken,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         // 校验 token
-        if (!fdlToken.equals(accessToken)) {
+        if (StrUtil.isBlankIfStr(authorization) && !fdlToken.equals(accessToken)) {
             return Result.error("Token无效");
         }
 
@@ -97,10 +100,11 @@ public class EhsManagementController {
     @ApiOperation(value = "统计按照类型统计告警次数", notes = "饼图，统计按照类型统计告警次数（本周、本月、本年）")
     @GetMapping("/alarmsByTypeNumber")
     public Result<List<AlarmsByTypeNumberVO>> alarmsByTypeNumber(
-            @RequestHeader(value = "Token", required = false) String accessToken) {
+            @RequestHeader(value = "Token", required = false) String accessToken,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         // 校验 token
-        if (!fdlToken.equals(accessToken)) {
+        if (StrUtil.isBlankIfStr(authorization) && !fdlToken.equals(accessToken)) {
             return Result.error("Token无效");
         }
         return Result.ok(ehsManagementService.alarmsByTypeNumber());
