@@ -135,7 +135,7 @@ mvn clean package
 
 ## 开发规范（摘要）
 
-新增功能建议按以下顺序进行，完整约定见 `CLAUDE.md` 与 `AGENTS.md`：
+新增功能建议按以下顺序进行：
 
 1. 实体（继承 `BaseEntity`，`@TableName` + `@ApiModel`，非库字段加 `@TableField(exist = false)`）
 2. Mapper（继承 `BaseMapper<Entity>`，不写 XML，优先内置 CRUD 与 `LambdaQueryWrapper`）
@@ -154,7 +154,6 @@ mvn clean package
 
 ## 文档索引
 
-- `CLAUDE.md` / `AGENTS.md`：面向 AI 编码助手的项目指引（架构、编码约定、敏感改动区）
 - `docs/superpowers/sql/`：部分表建表样例
 - `docs/superpowers/plans/`、`specs/`：设计文档与计划
 - `docs/pSpace-javaSDK-2.2.1.jar`：pSpace 实时数据接入 SDK
