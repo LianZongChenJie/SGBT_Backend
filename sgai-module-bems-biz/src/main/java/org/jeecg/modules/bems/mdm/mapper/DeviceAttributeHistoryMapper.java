@@ -12,4 +12,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface DeviceAttributeHistoryMapper extends BaseMapper<DeviceAttributeHistory> {
+
+    /**
+     * 历史表最新的采集时间（用于默认查询区间对齐，避免采集中断后查出来全是空图）
+     */
+    @Select("select max(collection_time) from device_attribute_history")
+    LocalDateTime selectLatestCollectionTime();
 }
