@@ -161,7 +161,9 @@ public class SpaceWorkImpl implements IPspaceWork {
             boolean updated = deviceAttributeService.update(new LambdaUpdateWrapper<DeviceAttribute>()
                     .eq(DeviceAttribute::getAcquisitionCoding, coding)
                     .set(DeviceAttribute::getValue, valueStr)
-                    .set(DeviceAttribute::getQualityStamp, quality.getDesc()));
+                    .set(DeviceAttribute::getQualityStamp, quality.getDesc())
+                    // 记录本次采集时刻，供实时数据接口判断数据新鲜度（此前该字段从未写入）
+                    .set(DeviceAttribute::getGatherTime, LocalDateTime.now()));
             if (updated) {
                 updateCount++;
             }
